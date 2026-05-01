@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c7f019ffd42f70c49927f73fce3338d8, type: 3}
+  m_Name: PaladinCard
+  m_EditorClassIdentifier: Assembly-CSharp::Card
+  <ID>k__BackingField: 0
+  <cardSprite>k__BackingField: {fileID: 21300000, guid: a2952ade9e1444e4ea3d46fb57606a38, type: 3}
+  <cardName>k__BackingField: Palading
+  <description>k__BackingField: A tough unit with ok attack power. Good idea to buff
+    their health and attack for a strong card.
+  <ManaCost>k__BackingField: 4
+  <HealthBase>k__BackingField: 10
+  <DamagedBase>k__BackingField: 5
+  <DefenseBase>k__BackingField: 8
