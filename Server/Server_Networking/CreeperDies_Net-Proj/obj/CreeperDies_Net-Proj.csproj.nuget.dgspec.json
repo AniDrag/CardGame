@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "D:\\Networking\\MainProject\\Server\\Server_Networking\\CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj": {}
+    "D:\\Repo\\CardGame\\Server\\Server_Networking\\CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj": {}
   },
   "projects": {
-    "D:\\Networking\\MainProject\\Server\\Server_Networking\\CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj": {
+    "D:\\Repo\\CardGame\\Server\\Server_Networking\\CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\Networking\\MainProject\\Server\\Server_Networking\\CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj",
+        "projectUniqueName": "D:\\Repo\\CardGame\\Server\\Server_Networking\\CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj",
         "projectName": "CreeperDies_Net-Proj",
-        "projectPath": "D:\\Networking\\MainProject\\Server\\Server_Networking\\CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj",
+        "projectPath": "D:\\Repo\\CardGame\\Server\\Server_Networking\\CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj",
         "packagesPath": "C:\\Users\\AniDrag\\.nuget\\packages\\",
-        "outputPath": "D:\\Networking\\MainProject\\Server\\Server_Networking\\CreeperDies_Net-Proj\\obj\\",
+        "outputPath": "D:\\Repo\\CardGame\\Server\\Server_Networking\\CreeperDies_Net-Proj\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
