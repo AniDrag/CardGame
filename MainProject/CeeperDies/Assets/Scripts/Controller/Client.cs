@@ -40,14 +40,40 @@ public class Client : MonoBehaviour
         AddListener("/shutdown", OnShutdown, OSCUtil.STRING);
     }
 
+    private void Update()
+    {
+        dispatcher?.Update();
+        // Process all queued packets on the main thread
+        while (incomingPackets.TryDequeue(out byte[] packet))
+            ProcessPacket(packet);
+    }
+
     public void Connect(string ip, int port)
     {
-        if (IsConnected || isConnecting)
+        if (isConnecting)
         {
-            Log("System", "Already connected or connecting.");
+            Log("System", "Connecting in progres........");
             return;
         }
+
+        if(IsConnected)
+        {
+            Log("System", "Already conected, why can you still press the button?");
+        }
+        
+        // Clean up any previous failed/leftover connection
+        CleanupConnection();
+
         isConnecting = true;
+
+        // Validate and parse IP address
+        if (!IPAddress.TryParse(ip, out IPAddress address))
+        {
+            Log("System", $"Connection failed: Invalid IP address '{ip}'");
+            isConnecting = false;
+            return;
+        }
+
 
         ServerIP = ip;
         ServerPort = port;
@@ -69,9 +95,31 @@ public class Client : MonoBehaviour
         catch (Exception e)
         {
             Log("System", $"Connection failed: {e.Message}");
+            CleanupConnection();
             isConnecting = false;
             IsConnected = false;
         }
+    }
+
+    /// <summary>
+    /// Safely closes the UDP client and resets related state.
+    /// </summary>
+    private void CleanupConnection()
+    {
+        if (udpClient != null)
+        {
+            try
+            {
+                udpClient.Close();
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"Error closing UDP client: {e.Message}");
+            }
+            udpClient = null;
+        }
+        dispatcher = null;
+        serverEndpoint = null;
     }
 
     private void OnReceive(IAsyncResult ar)
@@ -80,7 +128,6 @@ public class Client : MonoBehaviour
         {
             IPEndPoint sender = new IPEndPoint(IPAddress.Any, 0);
             byte[] data = udpClient.EndReceive(ar, ref sender);
-            // Just queue the raw packet for main thread processing
             incomingPackets.Enqueue(data);
         }
         catch (Exception e)
@@ -89,7 +136,8 @@ public class Client : MonoBehaviour
         }
         finally
         {
-            try { udpClient?.BeginReceive(OnReceive, null); } catch { }
+            try { udpClient?.BeginReceive(OnReceive, null); } 
+            catch { }
         }
     }
 
@@ -129,7 +177,7 @@ public class Client : MonoBehaviour
             }
             else
             {
-                Log("Debug", "Message corrupt");
+                Log("Debug", $"Message corrupt");
             }
         }
 
@@ -156,14 +204,6 @@ public class Client : MonoBehaviour
     public void RemoveListener(string address, Action<OSCMessageIn, IPEndPoint> handler)
     {
         dispatcher?.RemoveListener(address, handler);
-    }
-
-    private void Update()
-    {
-        dispatcher?.Update();
-        // Process all queued packets on the main thread
-        while (incomingPackets.TryDequeue(out byte[] packet))
-            ProcessPacket(packet);
     }
 
     private void OnShutdown(OSCMessageIn msg, IPEndPoint sender)
@@ -194,6 +234,8 @@ public class Client : MonoBehaviour
             udpClient.Close();
             udpClient = null;
         }
+
+        CleanupConnection();
         IsConnected = false;
         isConnecting = false;
         dispatcher = null;
