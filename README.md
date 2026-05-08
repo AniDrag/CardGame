@@ -107,6 +107,7 @@ Don't forget to allow inbound UDP traffic on port 55000 in your firewall.
 ## 📁 Code Structure
 
 The Unity project is organised into three main folders:
+```text
 Assets/
 ├── Scripts/
 │ ├── Client/ # Network client (OSC over UDP)
@@ -118,8 +119,8 @@ Assets/
 ├── 0_SC_MainMenu.unity
 ├── 1_Sc_Lobby.unity
 └── 2_Sc_Game.unity # Empty – placeholder for actual gameplay
+```
 
-text
 
 ### 📄 Key files
 
