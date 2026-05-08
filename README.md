@@ -77,10 +77,22 @@ The built executable will contain the entire UI and networking logic.
 
 ---
 
-### 2️⃣ Run the Server
+### Run the Server
 
-Compile `OSCServer.cs` using Visual Studio or `csc`:
+The server code (`OSCServer.cs`) is a standard C# console application.  
+Compile it using **Visual Studio** or the command line:
 
+```bash
+csc OSCServer.cs /reference:OSCTools.dll
+```
+> **Note:** (Make sure OSCTools.dll or the source files are in the same folder.)
+
+Then run the resulting executable:
+  - On Windows: OSCServer.exe
+  - On Linux/macOS: mono OSCServer.exe (if Mono is installed)
+
+The server listens on UDP port 55000 by default.
+Don't forget to allow inbound UDP traffic on port 55000 in your firewall.
 ## 🎮 Play the Game
 
 1. Start the server first.
