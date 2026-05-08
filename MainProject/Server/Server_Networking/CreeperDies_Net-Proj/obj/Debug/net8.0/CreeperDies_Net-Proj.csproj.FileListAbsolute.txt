@@ -1,0 +1,14 @@
+D:\Networking\MainProject\Server\Server_Networking\CreeperDies_Net-Proj\obj\Debug\net8.0\CreeperDies_Net-Proj.GeneratedMSBuildEditorConfig.editorconfig
+D:\Networking\MainProject\Server\Server_Networking\CreeperDies_Net-Proj\obj\Debug\net8.0\CreeperDies_Net-Proj.AssemblyInfoInputs.cache
+D:\Networking\MainProject\Server\Server_Networking\CreeperDies_Net-Proj\obj\Debug\net8.0\CreeperDies_Net-Proj.AssemblyInfo.cs
+D:\Networking\MainProject\Server\Server_Networking\CreeperDies_Net-Proj\obj\Debug\net8.0\CreeperDies_Net-Proj.csproj.CoreCompileInputs.cache
+D:\Networking\MainProject\Server\Server_Networking\CreeperDies_Net-Proj\bin\Debug\net8.0\CreeperDies_Net-Proj.exe
+D:\Networking\MainProject\Server\Server_Networking\CreeperDies_Net-Proj\bin\Debug\net8.0\CreeperDies_Net-Proj.deps.json
+D:\Networking\MainProject\Server\Server_Networking\CreeperDies_Net-Proj\bin\Debug\net8.0\CreeperDies_Net-Proj.runtimeconfig.json
+D:\Networking\MainProject\Server\Server_Networking\CreeperDies_Net-Proj\bin\Debug\net8.0\CreeperDies_Net-Proj.dll
+D:\Networking\MainProject\Server\Server_Networking\CreeperDies_Net-Proj\bin\Debug\net8.0\CreeperDies_Net-Proj.pdb
+D:\Networking\MainProject\Server\Server_Networking\CreeperDies_Net-Proj\obj\Debug\net8.0\CreeperDies_Net-Proj.dll
+D:\Networking\MainProject\Server\Server_Networking\CreeperDies_Net-Proj\obj\Debug\net8.0\refint\CreeperDies_Net-Proj.dll
+D:\Networking\MainProject\Server\Server_Networking\CreeperDies_Net-Proj\obj\Debug\net8.0\CreeperDies_Net-Proj.pdb
+D:\Networking\MainProject\Server\Server_Networking\CreeperDies_Net-Proj\obj\Debug\net8.0\CreeperDies_Net-Proj.genruntimeconfig.cache
+D:\Networking\MainProject\Server\Server_Networking\CreeperDies_Net-Proj\obj\Debug\net8.0\ref\CreeperDies_Net-Proj.dll
