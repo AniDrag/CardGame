@@ -38,7 +38,7 @@ This is an online variant of *MartialDie*, built for my own learning experience 
 ## What is this?
 
 This repository contains **both the client and server code** for an online multiplayer game.  
-The client is built with **Unity** and communicates with a **standalone server** (C# console app) using the **OSC (Open Sound Control)** protocol over UDP.
+The client is built with **Unity** and communicates with a **standalone server** (C# console app) using the **OSCTools** library.
 
 ### Key features already implemented
 
@@ -110,9 +110,21 @@ The Unity project is organised into three main folders:
 ```text
 Assets/
 ├── Scripts/
-│ ├── Client/ # Network client (OSC over UDP)
-│ ├── UI/ # All view classes (MainMenu, Lobby, CreateRoom, etc.)
-│ ├── Controllers/ # Game state & OSC message handling
+│ ├── Controller/ #Client, MainMenuController, LobbyController, GameController
+│ │ ├── #Client,
+│ │ ├── #MainMenuController,
+│ │ ├── #LobbyController,
+│ │ ├── #GameController,
+│ ├── View/ #All view classes (MainMenu, Lobby, CreateRoom, etc.)
+│ │ ├── #ClientView,
+│ │ ├── #GameView,
+│ │ ├── #LobbyView,
+│ │ ├── #MainMenuView,
+│ │ ├── UIComponents/
+│ │ │ ├── #CreateRoomView,
+│ │ │ ├── #HostRoomView,
+│ │ │ ├── #RoomEntryView,
+│ │ │ ├── #WaitingForHostView,
 │ ├── EventBus/ # Simple in‑memory event system for decoupling
 │ └── OSCTools/ # The OSC library (packet parsing, dispatching)
 └── Scenes/
@@ -202,3 +214,25 @@ var msg = new OSCMessageOut("/my_command");
 msg.AddInt(42);
 Client.Instance.Send(msg);
 ```
+## Implementing the actual game scene
+  - The 2_Sc_Game scene is currently empty.
+  - Add your MartialDie gameplay there, using the same OSC client to send/receive game‑specific messages   (e.g.,/roll_dice, /move_token).
+
+- Remember to add listeners for those messages in a GameController script.
+---
+## Building the server as a standalone
+The server code (OSCServer.cs) is a standard .NET Console application.
+Compile it using Visual Studio or the command line:
+
+```bash
+csc /target:exe /out:OSCServer.exe OSCServer.cs
+Run it on the same machine (or a dedicated server) where the public IP is known.
+```
+## License & Credits
+OSCTools – Paul Bonsma (CC0 / Public Domain)
+---
+Rest of the code – © [Your Name] 2025
+
+**#License: This project is for studying use only.**
+You may not redistribute, sell, or use this code in commercial products without explicit permission.
+See the LICENSE file for details.
