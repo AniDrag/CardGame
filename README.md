@@ -178,7 +178,14 @@ Each network request can start a timeout coroutine (`Client.StartTimeout()`). If
 
 ```csharp
 dispatcher.AddListener("/my_command", OnMyCommand, ...);
-
+```
 In client (e.g., LobbyController) – add a listener:
-´´´csharp
+```csharp
 Client.Instance.AddListener("/my_command", OnMyCommand, ...);
+```
+Send the message:
+```csharp
+var msg = new OSCMessageOut("/my_command");
+msg.AddInt(42);
+Client.Instance.Send(msg);
+```
