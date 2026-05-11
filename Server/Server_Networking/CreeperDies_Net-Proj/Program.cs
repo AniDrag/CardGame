@@ -171,6 +171,26 @@ class OSCServer
             case "/dods":
                 HandleDodsCommand(parts);
                 break;
+            case "/ban":
+                if (parts.Length < 2)
+                    Console.WriteLine("Usage: /ban <IP>");
+                else if (IPAddress.TryParse(parts[1], out var ipToBan))
+                {
+                    bannedIPs.Add(ipToBan);
+                    // Kick any client with that IP
+                    var clientsToKick = clients.Values.Where(c => c.Endpoint.Address.Equals(ipToBan)).ToList();
+                    foreach (var c in clientsToKick)
+                        RemoveClient(c);
+                    Console.WriteLine($"Banned IP {ipToBan} and kicked {clientsToKick.Count} client(s).");
+                    // Auto-unban after duration
+                    _ = Task.Delay(BAN_DURATION_SECONDS * 1000).ContinueWith(_ =>
+                    {
+                        bannedIPs.Remove(ipToBan);
+                        Console.WriteLine($"Auto-unbanned IP {ipToBan}");
+                    });
+                }
+                else Console.WriteLine("Invalid IP address.");
+                break;
             default:
                 Console.WriteLine("Unknown command. Type /help");
                 break;
@@ -358,6 +378,7 @@ class OSCServer
 
     //DebugCommands
     #endregion
+
     #region Security
     // ------------------------- RATE LIMITING -------------------------
     /// <summary>
@@ -547,6 +568,12 @@ class OSCServer
         var client = GetClientByEndpoint(sender);
         if (client == null) { SendError(sender, "Not registered"); return; }
 
+        if (!string.IsNullOrEmpty(client.CurrentRoom))
+        {
+            SendError(sender, "You are already in a room. Leave it first.");
+            return;
+        }
+
         string roomName = ReadCappedString(msg, MAX_ROOM_NAME_LENGTH, "room name");
         if (roomName == null) { SendError(sender, $"Room name too long (max {MAX_ROOM_NAME_LENGTH})"); return; }
 
@@ -570,10 +597,22 @@ class OSCServer
         var client = GetClientByEndpoint(sender);
         if (client == null) { SendError(sender, "Not registered"); return; }
 
+        if (!string.IsNullOrEmpty(client.CurrentRoom))
+        {
+            SendError(sender, "You are already in a room. Leave it first.");
+            return;
+        }
+
         string roomName = ReadCappedString(msg, MAX_ROOM_NAME_LENGTH, "room name");
         if (roomName == null) { SendError(sender, $"Room name too long (max {MAX_ROOM_NAME_LENGTH})"); return; }
 
         if (!rooms.TryGetValue(roomName, out var room)) { SendError(sender, "Room not found"); return; }
+
+        if (room.currParticipants >= 4)
+        {
+            SendError(sender, "Room is full");
+            return;
+        }
 
         client.CurrentRoom = roomName;
         room.currParticipants++;
@@ -594,6 +633,17 @@ class OSCServer
         {
             room.currParticipants--;
             client.CurrentRoom = null;
+
+            if (room.host == client.Name && room.currParticipants > 0)
+            {
+                var newHostClient = clients.Values.FirstOrDefault(c => c.CurrentRoom == room.roomName);
+                if (newHostClient != null)
+                {
+                    room.host = newHostClient.Name;
+                    Console.WriteLine($"[ROOM] New host for '{room.roomName}' is {room.host}");
+                }
+            }
+
             if (room.currParticipants <= 0)
             {
                 rooms.Remove(room.roomName);
@@ -623,10 +673,18 @@ class OSCServer
             return;
         }
 
+        if (room.GameStarted)
+        {
+            SendError(sender, "Game already started");
+            return;
+        }
+
+        room.GameStarted = true;
         var startMsg = new OSCMessageOut("/game_started");
         BroadcastToRoom(room, startMsg);
         Console.WriteLine($"[GAME] Game started in room '{room.roomName}' by {client.Name}");
     }
+
     private static void OnListRooms(OSCMessageIn msg, IPEndPoint sender)
     {
         var client = GetClientByEndpoint(sender);
@@ -747,9 +805,15 @@ public class RoomEntryData
     public string host;
     public int pointGoal;
     public int currParticipants;
+    public bool GameStarted;
     public RoomEntryData(int pId, string pRoomName, string pHostName, int pPointGoal, int pCurrParticipants)
     {
-        ID = pId; roomName = pRoomName; host = pHostName; pointGoal = pPointGoal; currParticipants = pCurrParticipants;
+        ID = pId; 
+        roomName = pRoomName; 
+        host = pHostName; 
+        pointGoal = pPointGoal; 
+        currParticipants = pCurrParticipants;
+        GameStarted = false;
     }
 }
 #endregion
