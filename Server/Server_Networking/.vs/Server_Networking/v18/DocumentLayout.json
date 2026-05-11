@@ -1,18 +1,30 @@
 {
   "Version": 1,
-  "WorkspaceRootPath": "D:\\Networking\\MainProject\\Server\\Server_Networking\\",
+  "WorkspaceRootPath": "C:\\Users\\drago\\Documents\\Repository\\CardGame\\Server\\Server_Networking\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{26140A43-AD02-470E-A1D1-9DCEA875CFC6}|CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj|d:\\networking\\mainproject\\server\\server_networking\\creeperdies_net-proj\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "AbsoluteMoniker": "D:0:0:{26140A43-AD02-470E-A1D1-9DCEA875CFC6}|CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj|c:\\users\\drago\\documents\\repository\\cardgame\\server\\server_networking\\creeperdies_net-proj\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{26140A43-AD02-470E-A1D1-9DCEA875CFC6}|CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj|solutionrelative:creeperdies_net-proj\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{26140A43-AD02-470E-A1D1-9DCEA875CFC6}|CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj|d:\\networking\\mainproject\\server\\server_networking\\creeperdies_net-proj\\osctools\\osclog.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{26140A43-AD02-470E-A1D1-9DCEA875CFC6}|CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj|solutionrelative:creeperdies_net-proj\\osctools\\osclog.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\drago\\Documents\\Repository\\CardGame\\MartianDies\\Assets\\Scripts\\Controller\\Client.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{26140A43-AD02-470E-A1D1-9DCEA875CFC6}|CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj|d:\\networking\\mainproject\\server\\server_networking\\creeperdies_net-proj\\osctools\\oscbundlein.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{26140A43-AD02-470E-A1D1-9DCEA875CFC6}|CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj|solutionrelative:creeperdies_net-proj\\osctools\\oscbundlein.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\drago\\Documents\\Repository\\CardGame\\MartianDies\\Assets\\Scripts\\Controller\\LobbyController.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\drago\\Documents\\Repository\\CardGame\\MartianDies\\Assets\\Scripts\\Controller\\GameController.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{26140A43-AD02-470E-A1D1-9DCEA875CFC6}|CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj|c:\\users\\drago\\documents\\repository\\cardgame\\server\\server_networking\\creeperdies_net-proj\\model\\connectionlog.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{26140A43-AD02-470E-A1D1-9DCEA875CFC6}|CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj|solutionrelative:creeperdies_net-proj\\model\\connectionlog.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\drago\\Documents\\Repository\\CardGame\\MartianDies\\Assets\\Scripts\\View\\ClientView.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{26140A43-AD02-470E-A1D1-9DCEA875CFC6}|CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj|c:\\users\\drago\\documents\\repository\\cardgame\\server\\server_networking\\creeperdies_net-proj\\model\\tcpnetworkconnection.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{26140A43-AD02-470E-A1D1-9DCEA875CFC6}|CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj|solutionrelative:creeperdies_net-proj\\model\\tcpnetworkconnection.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -22,43 +34,97 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 2,
+          "SelectedChildIndex": 6,
           "Children": [
             {
               "$type": "Document",
-              "DocumentIndex": 1,
-              "Title": "OSCLog.cs",
-              "DocumentMoniker": "D:\\Networking\\MainProject\\Server\\Server_Networking\\CreeperDies_Net-Proj\\OSCTools\\OSCLog.cs",
-              "RelativeDocumentMoniker": "CreeperDies_Net-Proj\\OSCTools\\OSCLog.cs",
-              "ToolTip": "D:\\Networking\\MainProject\\Server\\Server_Networking\\CreeperDies_Net-Proj\\OSCTools\\OSCLog.cs",
-              "RelativeToolTip": "CreeperDies_Net-Proj\\OSCTools\\OSCLog.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA8AAAADAAAAAAAAAA==",
+              "DocumentIndex": 2,
+              "Title": "LobbyController.cs",
+              "DocumentMoniker": "C:\\Users\\drago\\Documents\\Repository\\CardGame\\MartianDies\\Assets\\Scripts\\Controller\\LobbyController.cs",
+              "RelativeDocumentMoniker": "..\\..\\MartianDies\\Assets\\Scripts\\Controller\\LobbyController.cs",
+              "ToolTip": "C:\\Users\\drago\\Documents\\Repository\\CardGame\\MartianDies\\Assets\\Scripts\\Controller\\LobbyController.cs",
+              "RelativeToolTip": "..\\..\\MartianDies\\Assets\\Scripts\\Controller\\LobbyController.cs",
+              "ViewState": "AgIAAE0BAAAAAAAAAAAkwGsBAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-05-06T18:42:18.749Z"
+              "WhenOpened": "2026-05-11T13:53:31.24Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "OSCBundleIn.cs",
-              "DocumentMoniker": "D:\\Networking\\MainProject\\Server\\Server_Networking\\CreeperDies_Net-Proj\\OSCTools\\OSCBundleIn.cs",
-              "RelativeDocumentMoniker": "CreeperDies_Net-Proj\\OSCTools\\OSCBundleIn.cs",
-              "ToolTip": "D:\\Networking\\MainProject\\Server\\Server_Networking\\CreeperDies_Net-Proj\\OSCTools\\OSCBundleIn.cs",
-              "RelativeToolTip": "CreeperDies_Net-Proj\\OSCTools\\OSCBundleIn.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "DocumentIndex": 3,
+              "Title": "GameController.cs",
+              "DocumentMoniker": "C:\\Users\\drago\\Documents\\Repository\\CardGame\\MartianDies\\Assets\\Scripts\\Controller\\GameController.cs",
+              "RelativeDocumentMoniker": "..\\..\\MartianDies\\Assets\\Scripts\\Controller\\GameController.cs",
+              "ToolTip": "C:\\Users\\drago\\Documents\\Repository\\CardGame\\MartianDies\\Assets\\Scripts\\Controller\\GameController.cs",
+              "RelativeToolTip": "..\\..\\MartianDies\\Assets\\Scripts\\Controller\\GameController.cs",
+              "ViewState": "AgIAABsAAAAAAAAAAAAkwKQAAAABAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-05-06T18:42:18.802Z"
+              "WhenOpened": "2026-05-11T13:53:21.114Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "ConnectionLog.cs",
+              "DocumentMoniker": "C:\\Users\\drago\\Documents\\Repository\\CardGame\\Server\\Server_Networking\\CreeperDies_Net-Proj\\Model\\ConnectionLog.cs",
+              "RelativeDocumentMoniker": "CreeperDies_Net-Proj\\Model\\ConnectionLog.cs",
+              "ToolTip": "C:\\Users\\drago\\Documents\\Repository\\CardGame\\Server\\Server_Networking\\CreeperDies_Net-Proj\\Model\\ConnectionLog.cs",
+              "RelativeToolTip": "CreeperDies_Net-Proj\\Model\\ConnectionLog.cs",
+              "ViewState": "AgIAAAMAAAAAAAAAAAAAABwAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-11T13:50:36.311Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "ClientView.cs",
+              "DocumentMoniker": "C:\\Users\\drago\\Documents\\Repository\\CardGame\\MartianDies\\Assets\\Scripts\\View\\ClientView.cs",
+              "RelativeDocumentMoniker": "..\\..\\MartianDies\\Assets\\Scripts\\View\\ClientView.cs",
+              "ToolTip": "C:\\Users\\drago\\Documents\\Repository\\CardGame\\MartianDies\\Assets\\Scripts\\View\\ClientView.cs",
+              "RelativeToolTip": "..\\..\\MartianDies\\Assets\\Scripts\\View\\ClientView.cs",
+              "ViewState": "AgIAADsAAAAAAAAAAAAkwFkAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-11T13:24:40.258Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "Client.cs",
+              "DocumentMoniker": "C:\\Users\\drago\\Documents\\Repository\\CardGame\\MartianDies\\Assets\\Scripts\\Controller\\Client.cs",
+              "RelativeDocumentMoniker": "..\\..\\MartianDies\\Assets\\Scripts\\Controller\\Client.cs",
+              "ToolTip": "C:\\Users\\drago\\Documents\\Repository\\CardGame\\MartianDies\\Assets\\Scripts\\Controller\\Client.cs",
+              "RelativeToolTip": "..\\..\\MartianDies\\Assets\\Scripts\\Controller\\Client.cs",
+              "ViewState": "AgIAAAEAAAAALDMzMzMrwP0AAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-11T13:24:08.205Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "TcpNetworkConnection.cs",
+              "DocumentMoniker": "C:\\Users\\drago\\Documents\\Repository\\CardGame\\Server\\Server_Networking\\CreeperDies_Net-Proj\\Model\\TcpNetworkConnection.cs",
+              "RelativeDocumentMoniker": "CreeperDies_Net-Proj\\Model\\TcpNetworkConnection.cs",
+              "ToolTip": "C:\\Users\\drago\\Documents\\Repository\\CardGame\\Server\\Server_Networking\\CreeperDies_Net-Proj\\Model\\TcpNetworkConnection.cs",
+              "RelativeToolTip": "CreeperDies_Net-Proj\\Model\\TcpNetworkConnection.cs",
+              "ViewState": "AgIAALoAAAAAAAAAAAAqwEAAAAASAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-11T13:01:18.081Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
               "DocumentIndex": 0,
               "Title": "Program.cs",
-              "DocumentMoniker": "D:\\Networking\\MainProject\\Server\\Server_Networking\\CreeperDies_Net-Proj\\Program.cs",
+              "DocumentMoniker": "C:\\Users\\drago\\Documents\\Repository\\CardGame\\Server\\Server_Networking\\CreeperDies_Net-Proj\\Program.cs",
               "RelativeDocumentMoniker": "CreeperDies_Net-Proj\\Program.cs",
-              "ToolTip": "D:\\Networking\\MainProject\\Server\\Server_Networking\\CreeperDies_Net-Proj\\Program.cs",
+              "ToolTip": "C:\\Users\\drago\\Documents\\Repository\\CardGame\\Server\\Server_Networking\\CreeperDies_Net-Proj\\Program.cs",
               "RelativeToolTip": "CreeperDies_Net-Proj\\Program.cs",
-              "ViewState": "AgIAAIsCAAAAAAAAAAAUwGIBAAAUAAAAAAAAAA==",
+              "ViewState": "AgIAADwAAAAAAAAAAAAAAEkAAAAuAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-05-06T18:42:18.804Z",
+              "WhenOpened": "2026-05-11T13:01:02.473Z",
               "EditorCaption": ""
             }
           ]

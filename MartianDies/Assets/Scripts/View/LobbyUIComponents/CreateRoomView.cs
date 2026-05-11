@@ -1,3 +1,4 @@
+using AniDrag.EventBus;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -11,7 +12,7 @@ public class CreateRoomView : MonoBehaviour
 
     private void OnEnable()
     {
-        // Add listener (don't invoke)
+        createRoom.onClick.AddListener(CreateRoom);
         ptSlider.onValueChanged.AddListener(UpdatePtText);
     }
 
@@ -19,11 +20,17 @@ public class CreateRoomView : MonoBehaviour
     {
         // Clean up listener to avoid memory leaks
         ptSlider.onValueChanged.RemoveListener(UpdatePtText);
+        createRoom.onClick.RemoveListener(CreateRoom);
     }
 
     // Slider value is float, not int
     private void UpdatePtText(float val)
     {
         pointsCounter.text = $"PT: {Mathf.RoundToInt(val)}";
+    }
+
+    void CreateRoom()
+    {
+        EventBus<CreateRoom>.Publish(new CreateRoom(nameInput.text, (int)ptSlider.value));
     }
 }

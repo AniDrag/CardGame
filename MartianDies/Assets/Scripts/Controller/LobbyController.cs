@@ -19,6 +19,7 @@ public class LobbyController : MonoBehaviour
     private const string JOIN_ROOM_TIMEOUT = "join_room";
     private const string REFRESH_ROOMS_TIMEOUT = "refresh_rooms";
 
+    private bool pendingRoomCreation = false;
     private string pendingRoomName = null;
     private RoomEntryData currentRoom;    // room the player is in (host or joined)
     private bool gameStarted = false;
@@ -27,6 +28,7 @@ public class LobbyController : MonoBehaviour
     private EventBinding<StartGame> startGameBinding;
     private EventBinding<CloseHostedRoom> closeHostedRoomBinding;
     private EventBinding<LeaveRoom> leaveRoomBinding;
+    private EventBinding<CreateRoom> createRoomBinding;
 
 
     private void Start()//---
@@ -77,6 +79,8 @@ public class LobbyController : MonoBehaviour
         startGameBinding = new EventBinding<StartGame>(HandleStartGame);
         closeHostedRoomBinding = new EventBinding<CloseHostedRoom>(HandleCloseRoom);
         leaveRoomBinding = new EventBinding<LeaveRoom>(HandleLeaveRoom);
+        createRoomBinding = new EventBinding<CreateRoom>(HandleCloseRoom);
+        EventBus<CreateRoom>.Subscribe(createRoomBinding);
         EventBus<StartGame>.Subscribe(startGameBinding);
         EventBus<CloseHostedRoom>.Subscribe(closeHostedRoomBinding);
         EventBus<LeaveRoom>.Subscribe(leaveRoomBinding);
@@ -85,7 +89,7 @@ public class LobbyController : MonoBehaviour
         view.disconnectBtn.onClick.AddListener(HandleDisconnect);
         view.createRoomBtn.onClick.AddListener(() => createRoomView.gameObject.SetActive(true));
         view.refreshRoomsButton.onClick.AddListener(RefreshRoomList);
-        createRoomView.createRoom.onClick.AddListener(HandleCreateRoom);
+        //createRoomView.createRoom.onClick.AddListener(HandleCreateRoom);
 
         // Request initial room list
         RefreshRoomList();
@@ -156,10 +160,11 @@ public class LobbyController : MonoBehaviour
     #endregion
 
     #region Create Room View
-    private void HandleCreateRoom()
+    private void HandleCreateRoom(CreateRoom e)
     {
-        string roomName = createRoomView.nameInput.text.Trim();
-        int pointGoal = Mathf.RoundToInt(createRoomView.ptSlider.value);
+        if (pendingRoomCreation) return;
+        string roomName = e.roomName.Trim();
+        int pointGoal = e.pointGoal;
         if (string.IsNullOrEmpty(roomName))
         {
             Client.Log("Create room failed: empty name.");
@@ -178,6 +183,7 @@ public class LobbyController : MonoBehaviour
             view.OnEnableButtons(true);
             createRoomView.gameObject.SetActive(false);
             pendingRoomName = null;
+            pendingRoomCreation = false;
         });
 
         var msg = new OSCMessageOut("/create_room");
@@ -185,8 +191,9 @@ public class LobbyController : MonoBehaviour
         Client.Instance.Send(msg);
     }
 
-    public void OnCreateRoomSuccess(RoomEntryData newRoom)//---
+    public void OnCreateRoomSuccess(RoomEntryData newRoom)
     {
+        Client.Log("Room Creation sucessfull");
         currentRoom = newRoom;
         hostRoomView.OnCreate(newRoom.roomName, newRoom.currParticipants, newRoom.pointGoal);
         hostRoomView.gameObject.SetActive(true);
@@ -352,6 +359,5 @@ public class LobbyController : MonoBehaviour
         EventBus<StartGame>.Unsubscribe(startGameBinding);
         EventBus<CloseHostedRoom>.Unsubscribe(closeHostedRoomBinding);
         EventBus<LeaveRoom>.Unsubscribe(leaveRoomBinding);
-        createRoomView.createRoom.onClick.RemoveListener(HandleCreateRoom);
     }
 }

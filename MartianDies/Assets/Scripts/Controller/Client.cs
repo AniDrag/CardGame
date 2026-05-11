@@ -1,10 +1,12 @@
+using NetworkConnections;   // Your TcpNetworkConnection class
+using OSCTools;
 using System;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net;
-using System.Net.Sockets;
+using System.Threading.Tasks;
 using UnityEngine;
-using OSCTools;
 
 public class Client : MonoBehaviour
 {
@@ -15,22 +17,17 @@ public class Client : MonoBehaviour
     public int ServerPort = 55000;
     public string Username;
 
-    private UdpClient udpClient;
+    private TcpNetworkConnection connection;
     private OSCDispatcher dispatcher;
-    private IPEndPoint serverEndpoint;
-    private Dictionary<string, Coroutine> pendingTimeouts = new();
     private bool isConnecting = false;
     private ConcurrentQueue<byte[]> incomingPackets = new();
+    private Dictionary<string, Coroutine> pendingTimeouts = new();
 
     public bool IsConnected { get; private set; }
     public static event Action<string> OnConsoleLog;
     public event Action OnConnected;
-    public event Action<string> OnDisconnected;  // string = reason
-    /// <summary>
-    /// Ok Follow allong.
-    /// We get a client instance. THe central comunication tower. all messages are passed with it and accepthed with it.
-    /// We also sub to 2 main methods the server publishes to us. and any Disconection handeling is handeled here
-    /// </summary>
+    public event Action<string> OnDisconnected;
+
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -39,65 +36,62 @@ public class Client : MonoBehaviour
             return;
         }
         Instance = this;
-        DontDestroyOnLoad(gameObject); // persistance
-        Application.quitting += () => Disconnect(); 
+        DontDestroyOnLoad(gameObject);
+        Application.quitting += () => Disconnect();
         AddListener("/shutdown", OnShutdown, OSCUtil.STRING);
         AddListener("/server_message", OnServerMessage, OSCUtil.STRING);
     }
 
-    /// <summary>
-    /// Waits for messages, and handels their dispaching here. controllers listen to the actions
-    /// </summary>
     private void Update()
     {
-        dispatcher?.Update();
-        // Process all queued packets on the main thread
+        // Process queued packets on main thread
         while (incomingPackets.TryDequeue(out byte[] packet))
             ProcessPacket(packet);
+
+        // Poll the TCP connection for new packets (non‑blocking)
+        if (IsConnected && connection != null)
+        {
+            while (connection.Available() > 0)
+            {
+                byte[] packet = connection.GetPacket();
+                if (packet != null)
+                    incomingPackets.Enqueue(packet);
+            }
+        }
     }
-    /// <summary>
-    ///  Non persistent conection request to server. Default port is 55000
-    /// </summary>
-    /// <param name="ip"></param>
-    /// <param name="port"></param>
-    public void Connect(string ip, int port)
+
+    public async void Connect(string ip, int port)
     {
         if (isConnecting)
         {
-            Log("System", "Connecting in progres........");
+            Log("System", "Connecting in progress...");
+            return;
+        }
+        if (IsConnected)
+        {
+            Log("System", "Already connected.");
             return;
         }
 
-        if(IsConnected)
-        {
-            Log("System", "Already conected, why can you still press the button?");
-        }
-        
-        // Clean up any previous failed/leftover connection
         CleanupConnection();
-
         isConnecting = true;
-
-        // Validate and parse IP address
-        if (!IPAddress.TryParse(ip, out IPAddress address))
-        {
-            Log("System", $"Connection failed: Invalid IP address '{ip}'");
-            isConnecting = false;
-            return;
-        }
-
-
-        ServerIP = ip;
-        ServerPort = port;
-        serverEndpoint = new IPEndPoint(IPAddress.Parse(ip), port);
 
         try
         {
-            udpClient = new UdpClient(0);
+            // Use the TcpNetworkConnection constructor that connects to a remote server
+            connection = new TcpNetworkConnection(ip, port, asynchronous: true, fast: true);
+
+            // Wait for connection to complete (simple polling, you can improve with a timeout)
+            float timeout = 5f;
+            float startTime = Time.time;
+            while (connection.Status == ConnectionStatus.Connecting && Time.time - startTime < timeout)
+                await Task.Delay(10);
+
+            if (connection.Status != ConnectionStatus.Connected)
+                throw new Exception("Connection failed or timeout");
+
             dispatcher = new OSCDispatcher();
             dispatcher.ShowIncomingMessages = true;
-
-            udpClient.BeginReceive(OnReceive, null);
             IsConnected = true;
             isConnecting = false;
 
@@ -113,57 +107,23 @@ public class Client : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Safely closes the UDP client and resets related state.
-    /// </summary>
     private void CleanupConnection()
     {
-        if (udpClient != null)
+        if (connection != null)
         {
-            try
-            {
-                udpClient.Close();
-            }
-            catch (Exception e)
-            {
-                Debug.LogWarning($"Error closing UDP client: {e.Message}");
-            }
-            udpClient = null;
+            connection.Close();
+            connection = null;
         }
         dispatcher = null;
-        serverEndpoint = null;
-    }
-    /// <summary>
-    /// IAysncResult recives data and decompiles along side runtime code
-    /// </summary>
-    /// <param name="ar"></param>
-    private void OnReceive(IAsyncResult ar)
-    {
-        try
-        {
-            IPEndPoint sender = new IPEndPoint(IPAddress.Any, 0);
-            byte[] data = udpClient.EndReceive(ar, ref sender);
-            incomingPackets.Enqueue(data);
-        }
-        catch (Exception e)
-        {
-            Debug.LogError($"Background receive error: {e.Message}");
-        }
-        finally
-        {
-            try { udpClient?.BeginReceive(OnReceive, null); } 
-            catch { }
-        }
     }
 
     private void ProcessPacket(byte[] data)
     {
-        // This runs on the main thread
         if (data == null) return;
 
-        // Raw log for debugging (using Debug.Log directly, which is thread-safe)
+        // Log raw packet (same as before)
         Debug.Log($"[{DateTime.Now:HH:mm}] Debug | Raw packet: {data.Length} bytes");
-        // This whole part handels my ing game Debuging system my Debug log. and displays coms with the server
+
         if (OSCObject.IsBundle(data))
         {
             OSCBundleIn bundle = new OSCBundleIn(data, null);
@@ -176,7 +136,6 @@ public class Client : MonoBehaviour
             if (!msg.corrupt)
             {
                 Log("Server", msg.ToString());
-                // Optionally log parsed details
                 msg.ResetRead();
                 while (msg.NextType() != 0)
                 {
@@ -186,13 +145,13 @@ public class Client : MonoBehaviour
                     else if (t == OSCObject.STRING)
                         Log("Debug", $"  string: {msg.ReadString()}");
                     else
-                        msg.ReadInt(); // skip
+                        msg.ReadInt();
                 }
                 msg.ResetRead();
             }
             else
             {
-                Log("Debug", $"Message corrupt");
+                Log("Debug", "Message corrupt");
             }
         }
 
@@ -201,19 +160,20 @@ public class Client : MonoBehaviour
 
     public void Send(OSCMessageOut msg)
     {
-        if (udpClient == null || serverEndpoint == null)
+        if (!IsConnected || connection == null)
         {
             Log("System", "Cannot send: not connected.");
             return;
         }
         byte[] packet = msg.GetBytes();
-        udpClient.Send(packet, packet.Length, serverEndpoint);
+        connection.Send(packet);
         Log("Client", msg.ToString());
     }
 
     public void AddListener(string address, Action<OSCMessageIn, IPEndPoint> handler, params string[] args)
     {
-        dispatcher?.AddListener(address, handler, args);
+        if (dispatcher != null)
+            dispatcher.AddListener(address, handler, args);
     }
 
     public void RemoveListener(string address, Action<OSCMessageIn, IPEndPoint> handler)
@@ -221,54 +181,31 @@ public class Client : MonoBehaviour
         dispatcher?.RemoveListener(address, handler);
     }
 
-    /// <summary>
-    /// When server shuts down we go to main menu.
-    /// </summary>
-    /// <param name="msg"></param>
-    /// <param name="sender"></param>
     private void OnShutdown(OSCMessageIn msg, IPEndPoint sender)
     {
         string reason = msg.ReadString();
         Log("System", $"Server shutdown: {reason}");
-
-        // Clean up and return to main menu
         Disconnect(reason);
         UnityEngine.SceneManagement.SceneManager.LoadSceneAsync("0_SC_MainMenu");
     }
 
-    /// <summary>
-    /// application crash or anything handeles this Disconect is called manualy too for when user wishes to disconect.
-    /// </summary>
-    /// <param name="reason"></param>
     public void Disconnect(string reason = "User requested")
     {
         if (!IsConnected) return;
 
-        if (IsConnected && udpClient != null)
+        if (IsConnected && connection != null && connection.Status == ConnectionStatus.Connected)
         {
             var disconnectMsg = new OSCMessageOut("/disconnect");
             Send(disconnectMsg);
         }
 
-        foreach (var kvp in pendingTimeouts)
-            StopCoroutine(kvp.Value);
-        pendingTimeouts.Clear();
-
-        if (udpClient != null)
-        {
-            udpClient.Close();
-            udpClient = null;
-        }
-
         CleanupConnection();
         IsConnected = false;
         isConnecting = false;
-        dispatcher = null;
         Log("System", $"Disconnected: {reason}");
         OnDisconnected?.Invoke(reason);
     }
 
-    // --- Logging (now safe because called from main thread) ---
     private static string GetTimestamp() => DateTime.Now.ToString("HH:mm");
     public static void Log(string sender, string message)
     {
@@ -279,11 +216,13 @@ public class Client : MonoBehaviour
     public static void Log(string message) => Log("System", message);
 
     private void OnDestroy() => Disconnect();
+
     private void OnServerMessage(OSCMessageIn msg, IPEndPoint sender)
     {
         string message = msg.ReadString();
         Log("Server Broadcast", message);
     }
+
     #region Timeout controls
     public void StartTimeout(string operationId, float duration, Action onTimeout)
     {
@@ -292,7 +231,7 @@ public class Client : MonoBehaviour
         pendingTimeouts[operationId] = StartCoroutine(TimeoutCoroutine(operationId, duration, onTimeout));
     }
 
-    private System.Collections.IEnumerator TimeoutCoroutine(string operationId, float duration, Action onTimeout)
+    private IEnumerator TimeoutCoroutine(string operationId, float duration, Action onTimeout)
     {
         yield return new WaitForSeconds(duration);
         if (pendingTimeouts.ContainsKey(operationId))

@@ -8,7 +8,19 @@ public struct DisableButtons : IEvBusEvent
     public bool isEnabled;
     public DisableButtons(bool pIsEnabled) => isEnabled = pIsEnabled;
 }
+public struct CreateRoom : IEvBusEvent 
+{
+    public string roomName;
+    public int pointGoal;
+    public CreateRoom(string pName,int pPointGoal)
+    {
+        roomName = pName;
+        pointGoal = pPointGoal;
+    }
 
+}
+
+public struct RefreshRooms : IEvBusEvent { }
 public struct StartGame : IEvBusEvent { }
 public struct CloseHostedRoom : IEvBusEvent { }
 public struct LeaveRoom : IEvBusEvent { }
