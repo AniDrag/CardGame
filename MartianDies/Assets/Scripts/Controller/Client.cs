@@ -38,6 +38,7 @@ public class Client : MonoBehaviour
         DontDestroyOnLoad(gameObject);
         Application.quitting += () => Disconnect();
         AddListener("/shutdown", OnShutdown, OSCUtil.STRING);
+        AddListener("/server_message", OnServerMessage, OSCUtil.STRING);
     }
 
     private void Update()
@@ -254,7 +255,11 @@ public class Client : MonoBehaviour
     public static void Log(string message) => Log("System", message);
 
     private void OnDestroy() => Disconnect();
-
+    private void OnServerMessage(OSCMessageIn msg, IPEndPoint sender)
+    {
+        string message = msg.ReadString();
+        Log("Server Broadcast", message);
+    }
     #region Timeout controls
     public void StartTimeout(string operationId, float duration, Action onTimeout)
     {

@@ -58,6 +58,7 @@ public class MainMenuController : MonoBehaviour
         Client.Instance.StartTimeout(REGISTER_TIMEOUT_ID, 10f, () =>
         {
             view.SetButtonsInteractable(true);
+            Client.Instance.RemoveListener("/registered", OnRegistered); 
             Client.Instance.Disconnect();
         });
 
