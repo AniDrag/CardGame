@@ -3,54 +3,6 @@
   "WorkspaceRootPath": "D:\\Repo\\CardGame\\Server\\Server_Networking\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{26140A43-AD02-470E-A1D1-9DCEA875CFC6}|CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj|d:\\repo\\cardgame\\server\\server_networking\\creeperdies_net-proj\\osctools\\simplemessagedispatcher.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{26140A43-AD02-470E-A1D1-9DCEA875CFC6}|CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj|solutionrelative:creeperdies_net-proj\\osctools\\simplemessagedispatcher.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{26140A43-AD02-470E-A1D1-9DCEA875CFC6}|CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj|d:\\repo\\cardgame\\server\\server_networking\\creeperdies_net-proj\\osctools\\oscutil.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{26140A43-AD02-470E-A1D1-9DCEA875CFC6}|CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj|solutionrelative:creeperdies_net-proj\\osctools\\oscutil.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{26140A43-AD02-470E-A1D1-9DCEA875CFC6}|CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj|d:\\repo\\cardgame\\server\\server_networking\\creeperdies_net-proj\\osctools\\oscpatternmatcher.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{26140A43-AD02-470E-A1D1-9DCEA875CFC6}|CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj|solutionrelative:creeperdies_net-proj\\osctools\\oscpatternmatcher.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{26140A43-AD02-470E-A1D1-9DCEA875CFC6}|CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj|d:\\repo\\cardgame\\server\\server_networking\\creeperdies_net-proj\\osctools\\oscobject.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{26140A43-AD02-470E-A1D1-9DCEA875CFC6}|CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj|solutionrelative:creeperdies_net-proj\\osctools\\oscobject.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{26140A43-AD02-470E-A1D1-9DCEA875CFC6}|CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj|d:\\repo\\cardgame\\server\\server_networking\\creeperdies_net-proj\\osctools\\oscmessageout.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{26140A43-AD02-470E-A1D1-9DCEA875CFC6}|CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj|solutionrelative:creeperdies_net-proj\\osctools\\oscmessageout.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{26140A43-AD02-470E-A1D1-9DCEA875CFC6}|CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj|d:\\repo\\cardgame\\server\\server_networking\\creeperdies_net-proj\\osctools\\oscmessagein.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{26140A43-AD02-470E-A1D1-9DCEA875CFC6}|CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj|solutionrelative:creeperdies_net-proj\\osctools\\oscmessagein.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{26140A43-AD02-470E-A1D1-9DCEA875CFC6}|CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj|d:\\repo\\cardgame\\server\\server_networking\\creeperdies_net-proj\\osctools\\oscmessagedispatcher.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{26140A43-AD02-470E-A1D1-9DCEA875CFC6}|CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj|solutionrelative:creeperdies_net-proj\\osctools\\oscmessagedispatcher.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{26140A43-AD02-470E-A1D1-9DCEA875CFC6}|CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj|d:\\repo\\cardgame\\server\\server_networking\\creeperdies_net-proj\\osctools\\oscdispatcher.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{26140A43-AD02-470E-A1D1-9DCEA875CFC6}|CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj|solutionrelative:creeperdies_net-proj\\osctools\\oscdispatcher.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{26140A43-AD02-470E-A1D1-9DCEA875CFC6}|CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj|d:\\repo\\cardgame\\server\\server_networking\\creeperdies_net-proj\\osctools\\osccolor.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{26140A43-AD02-470E-A1D1-9DCEA875CFC6}|CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj|solutionrelative:creeperdies_net-proj\\osctools\\osccolor.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{26140A43-AD02-470E-A1D1-9DCEA875CFC6}|CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj|d:\\repo\\cardgame\\server\\server_networking\\creeperdies_net-proj\\osctools\\oscbundleout.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{26140A43-AD02-470E-A1D1-9DCEA875CFC6}|CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj|solutionrelative:creeperdies_net-proj\\osctools\\oscbundleout.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{26140A43-AD02-470E-A1D1-9DCEA875CFC6}|CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj|d:\\repo\\cardgame\\server\\server_networking\\creeperdies_net-proj\\osctools\\osclog.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{26140A43-AD02-470E-A1D1-9DCEA875CFC6}|CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj|solutionrelative:creeperdies_net-proj\\osctools\\osclog.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{26140A43-AD02-470E-A1D1-9DCEA875CFC6}|CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj|d:\\repo\\cardgame\\server\\server_networking\\creeperdies_net-proj\\osctools\\oscbundlein.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{26140A43-AD02-470E-A1D1-9DCEA875CFC6}|CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj|solutionrelative:creeperdies_net-proj\\osctools\\oscbundlein.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{26140A43-AD02-470E-A1D1-9DCEA875CFC6}|CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj|d:\\repo\\cardgame\\server\\server_networking\\creeperdies_net-proj\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{26140A43-AD02-470E-A1D1-9DCEA875CFC6}|CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj|solutionrelative:creeperdies_net-proj\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
@@ -62,165 +14,21 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 1,
+          "SelectedChildIndex": 0,
           "Children": [
             {
               "$type": "Document",
-              "DocumentIndex": 12,
+              "DocumentIndex": 0,
               "Title": "Program.cs",
               "DocumentMoniker": "D:\\Repo\\CardGame\\Server\\Server_Networking\\CreeperDies_Net-Proj\\Program.cs",
               "RelativeDocumentMoniker": "CreeperDies_Net-Proj\\Program.cs",
               "ToolTip": "D:\\Repo\\CardGame\\Server\\Server_Networking\\CreeperDies_Net-Proj\\Program.cs",
               "RelativeToolTip": "CreeperDies_Net-Proj\\Program.cs",
-              "ViewState": "AgIAAK0CAAAAAAAAAAAIwPICAAAKAAAAAAAAAA==",
+              "ViewState": "AgIAAOkBAAAAAAAAAAAowAACAAAeAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-05-04T23:37:39.017Z",
-              "IsPinned": true
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 0,
-              "Title": "SimpleMessageDispatcher.cs",
-              "DocumentMoniker": "D:\\Repo\\CardGame\\Server\\Server_Networking\\CreeperDies_Net-Proj\\OSCTools\\SimpleMessageDispatcher.cs",
-              "RelativeDocumentMoniker": "CreeperDies_Net-Proj\\OSCTools\\SimpleMessageDispatcher.cs",
-              "ToolTip": "D:\\Repo\\CardGame\\Server\\Server_Networking\\CreeperDies_Net-Proj\\OSCTools\\SimpleMessageDispatcher.cs",
-              "RelativeToolTip": "CreeperDies_Net-Proj\\OSCTools\\SimpleMessageDispatcher.cs",
-              "ViewState": "AgIAADUAAAAAAAAAAADwv1kAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-05-08T19:18:35.403Z",
+              "IsPinned": true,
               "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 1,
-              "Title": "OSCUtil.cs",
-              "DocumentMoniker": "D:\\Repo\\CardGame\\Server\\Server_Networking\\CreeperDies_Net-Proj\\OSCTools\\OSCUtil.cs",
-              "RelativeDocumentMoniker": "CreeperDies_Net-Proj\\OSCTools\\OSCUtil.cs",
-              "ToolTip": "D:\\Repo\\CardGame\\Server\\Server_Networking\\CreeperDies_Net-Proj\\OSCTools\\OSCUtil.cs",
-              "RelativeToolTip": "CreeperDies_Net-Proj\\OSCTools\\OSCUtil.cs",
-              "ViewState": "AgIAAB4AAAAAAAAAAAAswD8AAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-05-08T19:18:34.941Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "OSCPatternMatcher.cs",
-              "DocumentMoniker": "D:\\Repo\\CardGame\\Server\\Server_Networking\\CreeperDies_Net-Proj\\OSCTools\\OSCPatternMatcher.cs",
-              "RelativeDocumentMoniker": "CreeperDies_Net-Proj\\OSCTools\\OSCPatternMatcher.cs",
-              "ToolTip": "D:\\Repo\\CardGame\\Server\\Server_Networking\\CreeperDies_Net-Proj\\OSCTools\\OSCPatternMatcher.cs",
-              "RelativeToolTip": "CreeperDies_Net-Proj\\OSCTools\\OSCPatternMatcher.cs",
-              "ViewState": "AgIAAB8AAAAAAAAAAAAiwEIAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-05-08T19:18:34.459Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 3,
-              "Title": "OSCObject.cs",
-              "DocumentMoniker": "D:\\Repo\\CardGame\\Server\\Server_Networking\\CreeperDies_Net-Proj\\OSCTools\\OSCObject.cs",
-              "RelativeDocumentMoniker": "CreeperDies_Net-Proj\\OSCTools\\OSCObject.cs",
-              "ToolTip": "D:\\Repo\\CardGame\\Server\\Server_Networking\\CreeperDies_Net-Proj\\OSCTools\\OSCObject.cs",
-              "RelativeToolTip": "CreeperDies_Net-Proj\\OSCTools\\OSCObject.cs",
-              "ViewState": "AgIAAIgAAAAAAAAAAAAUwKoAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-05-08T19:18:33.968Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 4,
-              "Title": "OSCMessageOut.cs",
-              "DocumentMoniker": "D:\\Repo\\CardGame\\Server\\Server_Networking\\CreeperDies_Net-Proj\\OSCTools\\OSCMessageOut.cs",
-              "RelativeDocumentMoniker": "CreeperDies_Net-Proj\\OSCTools\\OSCMessageOut.cs",
-              "ToolTip": "D:\\Repo\\CardGame\\Server\\Server_Networking\\CreeperDies_Net-Proj\\OSCTools\\OSCMessageOut.cs",
-              "RelativeToolTip": "CreeperDies_Net-Proj\\OSCTools\\OSCMessageOut.cs",
-              "ViewState": "AgIAAFMAAAAAAAAAAAAUwHUAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-05-08T19:18:33.513Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 5,
-              "Title": "OSCMessageIn.cs",
-              "DocumentMoniker": "D:\\Repo\\CardGame\\Server\\Server_Networking\\CreeperDies_Net-Proj\\OSCTools\\OSCMessageIn.cs",
-              "RelativeDocumentMoniker": "CreeperDies_Net-Proj\\OSCTools\\OSCMessageIn.cs",
-              "ToolTip": "D:\\Repo\\CardGame\\Server\\Server_Networking\\CreeperDies_Net-Proj\\OSCTools\\OSCMessageIn.cs",
-              "RelativeToolTip": "CreeperDies_Net-Proj\\OSCTools\\OSCMessageIn.cs",
-              "ViewState": "AgIAAKAAAAAAAAAAAAAQwMUAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-05-08T19:18:32.913Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 6,
-              "Title": "OSCMessageDispatcher.cs",
-              "DocumentMoniker": "D:\\Repo\\CardGame\\Server\\Server_Networking\\CreeperDies_Net-Proj\\OSCTools\\OSCMessageDispatcher.cs",
-              "RelativeDocumentMoniker": "CreeperDies_Net-Proj\\OSCTools\\OSCMessageDispatcher.cs",
-              "ToolTip": "D:\\Repo\\CardGame\\Server\\Server_Networking\\CreeperDies_Net-Proj\\OSCTools\\OSCMessageDispatcher.cs",
-              "RelativeToolTip": "CreeperDies_Net-Proj\\OSCTools\\OSCMessageDispatcher.cs",
-              "ViewState": "AgIAAAMAAAAAAAAAAAAswCQAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-05-08T19:18:32.393Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 7,
-              "Title": "OSCDispatcher.cs",
-              "DocumentMoniker": "D:\\Repo\\CardGame\\Server\\Server_Networking\\CreeperDies_Net-Proj\\OSCTools\\OSCDispatcher.cs",
-              "RelativeDocumentMoniker": "CreeperDies_Net-Proj\\OSCTools\\OSCDispatcher.cs",
-              "ToolTip": "D:\\Repo\\CardGame\\Server\\Server_Networking\\CreeperDies_Net-Proj\\OSCTools\\OSCDispatcher.cs",
-              "RelativeToolTip": "CreeperDies_Net-Proj\\OSCTools\\OSCDispatcher.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAKAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-05-08T19:18:31.362Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 8,
-              "Title": "OSCColor.cs",
-              "DocumentMoniker": "D:\\Repo\\CardGame\\Server\\Server_Networking\\CreeperDies_Net-Proj\\OSCTools\\OSCColor.cs",
-              "RelativeDocumentMoniker": "CreeperDies_Net-Proj\\OSCTools\\OSCColor.cs",
-              "ToolTip": "D:\\Repo\\CardGame\\Server\\Server_Networking\\CreeperDies_Net-Proj\\OSCTools\\OSCColor.cs",
-              "RelativeToolTip": "CreeperDies_Net-Proj\\OSCTools\\OSCColor.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA4AAAABAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-05-08T19:18:30.656Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 9,
-              "Title": "OSCBundleOut.cs",
-              "DocumentMoniker": "D:\\Repo\\CardGame\\Server\\Server_Networking\\CreeperDies_Net-Proj\\OSCTools\\OSCBundleOut.cs",
-              "RelativeDocumentMoniker": "CreeperDies_Net-Proj\\OSCTools\\OSCBundleOut.cs",
-              "ToolTip": "D:\\Repo\\CardGame\\Server\\Server_Networking\\CreeperDies_Net-Proj\\OSCTools\\OSCBundleOut.cs",
-              "RelativeToolTip": "CreeperDies_Net-Proj\\OSCTools\\OSCBundleOut.cs",
-              "ViewState": "AgIAABIAAAAAAAAAAAAUwDQAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-05-08T19:18:30.082Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 10,
-              "Title": "OSCLog.cs",
-              "DocumentMoniker": "D:\\Repo\\CardGame\\Server\\Server_Networking\\CreeperDies_Net-Proj\\OSCTools\\OSCLog.cs",
-              "RelativeDocumentMoniker": "CreeperDies_Net-Proj\\OSCTools\\OSCLog.cs",
-              "ToolTip": "D:\\Repo\\CardGame\\Server\\Server_Networking\\CreeperDies_Net-Proj\\OSCTools\\OSCLog.cs",
-              "RelativeToolTip": "CreeperDies_Net-Proj\\OSCTools\\OSCLog.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAABYAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-05-04T23:41:29.429Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 11,
-              "Title": "OSCBundleIn.cs",
-              "DocumentMoniker": "D:\\Repo\\CardGame\\Server\\Server_Networking\\CreeperDies_Net-Proj\\OSCTools\\OSCBundleIn.cs",
-              "RelativeDocumentMoniker": "CreeperDies_Net-Proj\\OSCTools\\OSCBundleIn.cs",
-              "ToolTip": "D:\\Repo\\CardGame\\Server\\Server_Networking\\CreeperDies_Net-Proj\\OSCTools\\OSCBundleIn.cs",
-              "RelativeToolTip": "CreeperDies_Net-Proj\\OSCTools\\OSCBundleIn.cs",
-              "ViewState": "AgIAADQAAAAAAAAAAAAUwFYAAAABAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-05-04T23:41:24.684Z"
             }
           ]
         }
