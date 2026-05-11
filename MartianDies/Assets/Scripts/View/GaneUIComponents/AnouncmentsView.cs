@@ -1,16 +1,27 @@
+using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class AnouncmentsView : MonoBehaviour
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    [SerializeField] private TMP_Text anouncmentText;
+    [SerializeField] private Button closeButton;
+    [SerializeField] private GameObject panel;
+    private float autoHideDelay = 3f;
+
+    private void Start()
     {
-        
+        if (closeButton != null) closeButton.onClick.AddListener(Hide);
+        Hide();
     }
 
-    // Update is called once per frame
-    void Update()
+    public void ShowAnnouncement(string message, bool autoHide = true)
     {
-        
+        anouncmentText.text = message;
+        gameObject.SetActive(true);
+        if (autoHide) 
+            Invoke(nameof(Hide), 3f);
     }
+
+    public void Hide() => gameObject.SetActive(false);
 }

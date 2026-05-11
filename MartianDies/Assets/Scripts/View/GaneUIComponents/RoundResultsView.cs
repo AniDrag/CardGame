@@ -1,16 +1,24 @@
+using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class RoundResultsView : MonoBehaviour
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    [SerializeField] private TMP_Text resultsText;
+    [SerializeField] private Button closeButton;
+    [SerializeField] private GameObject panel;
+
+    private void Start()
     {
-        
+        if (closeButton != null) closeButton.onClick.AddListener(Hide);
+        Hide();
     }
 
-    // Update is called once per frame
-    void Update()
+    public void ShowResults(string results)
     {
-        
+        resultsText.text = results;
+        gameObject.SetActive(true);
     }
+
+    public void Hide() => gameObject.SetActive(false);
 }

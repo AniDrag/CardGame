@@ -19,3 +19,15 @@ public struct UpdateRoomParticipants : IEvBusEvent
     public int participants;
     public UpdateRoomParticipants(int pNewCount) => participants = pNewCount;
 }
+
+public struct SelectedDiceType : IEvBusEvent
+{
+    public int diceType;
+    public SelectedDiceType(int pDiceType) => diceType = pDiceType;
+}
+
+public struct StakeRoll : IEvBusEvent
+{
+    public bool doReRoll;
+    public StakeRoll(bool pDoReRoll) => doReRoll = pDoReRoll;
+}

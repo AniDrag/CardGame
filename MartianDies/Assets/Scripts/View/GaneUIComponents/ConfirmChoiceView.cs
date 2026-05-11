@@ -1,16 +1,26 @@
 using UnityEngine;
+using UnityEngine.UI;
 
 public class ConfirmChoiceView : MonoBehaviour
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    [SerializeField] private Button yesButton;
+    [SerializeField] private Button noButton;
+    [SerializeField] private GameObject panel;
+
+    private System.Action<bool> onChoice;
+
+    private void Start()
     {
-        
+        yesButton.onClick.AddListener(() => { onChoice?.Invoke(true); Hide(); });
+        noButton.onClick.AddListener(() => { onChoice?.Invoke(false); Hide(); });
+        Hide();
     }
 
-    // Update is called once per frame
-    void Update()
+    public void Show(string question, System.Action<bool> callback)
     {
-        
+        onChoice = callback;
+        panel.SetActive(true);
     }
+
+    public void Hide() => panel.SetActive(false);
 }

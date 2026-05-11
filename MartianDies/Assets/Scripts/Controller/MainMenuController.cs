@@ -51,7 +51,7 @@ public class MainMenuController : MonoBehaviour
 
         Client.Instance.AddListener("/registered", OnRegistered, OSCUtil.INT, OSCUtil.STRING);
         Client.Log("Debug", "Registered /registered listener");
-        Client.Instance.AddListener("/*", (msg, sender) => {
+        Client.Instance.AddListener("/debug", (msg, sender) => {
             Client.Log("Debug", $"Wildcard caught: {msg.header} with tags {msg.typeTag}");
         });
 

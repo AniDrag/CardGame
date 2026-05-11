@@ -10,7 +10,7 @@ public class ClientView : MonoBehaviour
     [SerializeField] private TMP_Text ConsoleText;
 
     private bool consoleVisible = false;
-
+    
     private void Start()
     {
         // Find UI elements (your existing find logic)

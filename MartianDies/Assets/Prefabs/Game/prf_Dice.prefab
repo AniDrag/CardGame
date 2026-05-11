@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 4094133574281588927}
   - component: {fileID: 3631884001581069888}
   m_Layer: 5
-  m_Name: prf_Die
+  m_Name: prf_Dice
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

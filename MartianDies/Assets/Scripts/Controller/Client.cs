@@ -26,7 +26,11 @@ public class Client : MonoBehaviour
     public static event Action<string> OnConsoleLog;
     public event Action OnConnected;
     public event Action<string> OnDisconnected;  // string = reason
-
+    /// <summary>
+    /// Ok Follow allong.
+    /// We get a client instance. THe central comunication tower. all messages are passed with it and accepthed with it.
+    /// We also sub to 2 main methods the server publishes to us. and any Disconection handeling is handeled here
+    /// </summary>
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -35,12 +39,15 @@ public class Client : MonoBehaviour
             return;
         }
         Instance = this;
-        DontDestroyOnLoad(gameObject);
-        Application.quitting += () => Disconnect();
+        DontDestroyOnLoad(gameObject); // persistance
+        Application.quitting += () => Disconnect(); 
         AddListener("/shutdown", OnShutdown, OSCUtil.STRING);
         AddListener("/server_message", OnServerMessage, OSCUtil.STRING);
     }
 
+    /// <summary>
+    /// Waits for messages, and handels their dispaching here. controllers listen to the actions
+    /// </summary>
     private void Update()
     {
         dispatcher?.Update();
@@ -48,7 +55,11 @@ public class Client : MonoBehaviour
         while (incomingPackets.TryDequeue(out byte[] packet))
             ProcessPacket(packet);
     }
-
+    /// <summary>
+    ///  Non persistent conection request to server. Default port is 55000
+    /// </summary>
+    /// <param name="ip"></param>
+    /// <param name="port"></param>
     public void Connect(string ip, int port)
     {
         if (isConnecting)
@@ -122,7 +133,10 @@ public class Client : MonoBehaviour
         dispatcher = null;
         serverEndpoint = null;
     }
-
+    /// <summary>
+    /// IAysncResult recives data and decompiles along side runtime code
+    /// </summary>
+    /// <param name="ar"></param>
     private void OnReceive(IAsyncResult ar)
     {
         try
@@ -149,7 +163,7 @@ public class Client : MonoBehaviour
 
         // Raw log for debugging (using Debug.Log directly, which is thread-safe)
         Debug.Log($"[{DateTime.Now:HH:mm}] Debug | Raw packet: {data.Length} bytes");
-
+        // This whole part handels my ing game Debuging system my Debug log. and displays coms with the server
         if (OSCObject.IsBundle(data))
         {
             OSCBundleIn bundle = new OSCBundleIn(data, null);
@@ -207,6 +221,11 @@ public class Client : MonoBehaviour
         dispatcher?.RemoveListener(address, handler);
     }
 
+    /// <summary>
+    /// When server shuts down we go to main menu.
+    /// </summary>
+    /// <param name="msg"></param>
+    /// <param name="sender"></param>
     private void OnShutdown(OSCMessageIn msg, IPEndPoint sender)
     {
         string reason = msg.ReadString();
@@ -216,6 +235,11 @@ public class Client : MonoBehaviour
         Disconnect(reason);
         UnityEngine.SceneManagement.SceneManager.LoadSceneAsync("0_SC_MainMenu");
     }
+
+    /// <summary>
+    /// application crash or anything handeles this Disconect is called manualy too for when user wishes to disconect.
+    /// </summary>
+    /// <param name="reason"></param>
     public void Disconnect(string reason = "User requested")
     {
         if (!IsConnected) return;

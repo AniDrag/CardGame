@@ -66,7 +66,7 @@ public class LobbyController : MonoBehaviour
         view.SetPlayerName(Client.Instance.Username);
 
         // Subscribe to OSC messages
-        Client.Instance.AddListener("/room_update", OnRoomUpdate, OSCUtil.STRING, OSCUtil.INT, OSCUtil.INT, OSCUtil.STRING, OSCUtil.BOOL);
+        Client.Instance.AddListener("/room_update", OnRoomUpdate, OSCUtil.STRING, OSCUtil.INT, OSCUtil.INT, OSCUtil.STRING, OSCUtil.INT, OSCUtil.BOOL);
         Client.Instance.AddListener("/game_started", OnGameStarted);
         Client.Instance.AddListener("/error", OnError, OSCUtil.STRING);
         Client.Instance.AddListener("/room_list", OnRoomList);
@@ -85,6 +85,7 @@ public class LobbyController : MonoBehaviour
         view.disconnectBtn.onClick.AddListener(HandleDisconnect);
         view.createRoomBtn.onClick.AddListener(() => createRoomView.gameObject.SetActive(true));
         view.refreshRoomsButton.onClick.AddListener(RefreshRoomList);
+        createRoomView.createRoom.onClick.AddListener(HandleCreateRoom);
 
         // Request initial room list
         RefreshRoomList();
@@ -238,11 +239,12 @@ public class LobbyController : MonoBehaviour
         int playerCount = msg.ReadInt();
         int maxPlayers = msg.ReadInt();
         string hostName = msg.ReadString();
+        int pointGoal = msg.ReadInt();
         bool started = msg.ReadBool();
 
         if (!string.IsNullOrEmpty(pendingRoomName) && pendingRoomName == roomName)
         {
-            currentRoom = new RoomEntryData(roomName.GetHashCode(), roomName, hostName, 0, playerCount);
+            currentRoom = new RoomEntryData(roomName.GetHashCode(), roomName, hostName, pointGoal, playerCount);
             pendingRoomName = null;
             Client.Instance.CancelTimeout(CREATE_ROOM_TIMEOUT);
             Client.Instance.CancelTimeout(JOIN_ROOM_TIMEOUT);
@@ -350,5 +352,6 @@ public class LobbyController : MonoBehaviour
         EventBus<StartGame>.Unsubscribe(startGameBinding);
         EventBus<CloseHostedRoom>.Unsubscribe(closeHostedRoomBinding);
         EventBus<LeaveRoom>.Unsubscribe(leaveRoomBinding);
+        createRoomView.createRoom.onClick.RemoveListener(HandleCreateRoom);
     }
 }
