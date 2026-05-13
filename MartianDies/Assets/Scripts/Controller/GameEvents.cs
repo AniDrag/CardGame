@@ -1,36 +1,66 @@
 using AniDrag.EventBus;
 
-/// <summary>
-/// For all UI buttons to recive info that they should be dissabled
-/// </summary>
+
+
+#region Lobby Events
 public struct DisableButtons : IEvBusEvent
 {
     public bool isEnabled;
     public DisableButtons(bool pIsEnabled) => isEnabled = pIsEnabled;
 }
-public struct CreateRoom : IEvBusEvent 
+public struct RefreshRooms : IEvBusEvent { }
+public struct UpdateRoomParticipants : IEvBusEvent
+{
+    public int participants;
+    public UpdateRoomParticipants(int pNewCount) => participants = pNewCount;
+}
+public struct JoinRoom : IEvBusEvent
+{
+    public RoomEntryData data;
+    public JoinRoom(RoomEntryData pData)
+    {
+        data = pData;
+    }
+}
+
+#endregion
+
+#region Waiting for host Events
+public struct LeaveRoom : IEvBusEvent { }
+
+#endregion
+
+#region Create Room Events
+public struct CreateRoom : IEvBusEvent
 {
     public string roomName;
     public int pointGoal;
-    public CreateRoom(string pName,int pPointGoal)
+    public CreateRoom(string pName, int pPointGoal)
     {
         roomName = pName;
         pointGoal = pPointGoal;
     }
 
 }
+public struct RoomCreated : IEvBusEvent
+{
+    public bool succes;
+    public RoomEntryData data;
+    public RoomCreated(bool pSucces, RoomEntryData pData)
+    {
+        succes = pSucces;
+        data = pData;
+    }
+}
+#endregion
 
-public struct RefreshRooms : IEvBusEvent { }
+#region HostRoomEvents
 public struct StartGame : IEvBusEvent { }
 public struct CloseHostedRoom : IEvBusEvent { }
-public struct LeaveRoom : IEvBusEvent { }
+#endregion
 
 // Only for Hosting room or when waiting room
-public struct UpdateRoomParticipants : IEvBusEvent
-{
-    public int participants;
-    public UpdateRoomParticipants(int pNewCount) => participants = pNewCount;
-}
+
 
 public struct SelectedDiceType : IEvBusEvent
 {

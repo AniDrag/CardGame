@@ -5,15 +5,16 @@ using UnityEngine.UI;
 
 public class HostRoomView : MonoBehaviour
 {
-    [SerializeField] TMP_Text roomDetailsText;
-    public Button startGame;
-    public Button closeRoom;
+    [SerializeField] private TMP_Text roomDetailsText;
+    [SerializeField] private Button startGame;
+    [SerializeField] private Button closeRoom;
 
     EventBinding<UpdateRoomParticipants> updateRoomParticipantsBinding;
+    EventBinding<RoomCreated> roomCreatedBinding;
 
     string _roomName;
     int _points;
-
+    int participants;
     private void OnEnable()
     {
         if (startGame == null)
@@ -44,19 +45,19 @@ public class HostRoomView : MonoBehaviour
         EventBus<UpdateRoomParticipants>.Unsubscribe(updateRoomParticipantsBinding);
     }
 
-    /// <summary>
-    /// When showing the room aka on enabeling it
-    /// </summary>
-    /// <param name="roomName"></param>
-    /// <param name="participants"></param>
-    /// <param name="pointGoal"></param>
-    public void OnCreate(string roomName, int participants, int pointGoal)
+    public void OnCreate(RoomCreated e)
     {
-        _roomName = roomName;
-        _points = participants;
+        _roomName = e.data.roomName;
+        _points = e.data.pointGoal;
+        participants = 1;
+
         roomDetailsText.text = $"{_roomName}\n {participants} / 4\nPonit Goal: {_points}";
     }
-    public void UpdateParticipantsInRoom(UpdateRoomParticipants e) => OnCreate(_roomName, e.participants, _points);
+    public void UpdateParticipantsInRoom(UpdateRoomParticipants e)
+    {
+        participants = e.participants;
+        roomDetailsText.text = $"{_roomName}\n {participants} / 4\nPonit Goal: {_points}";
+    }
 
     void EventBus_Publish_StartGame() => EventBus<StartGame>.Publish(new StartGame());
     void EventBus_Publish_CloseHostedRoom() => EventBus<CloseHostedRoom>.Publish(new CloseHostedRoom());

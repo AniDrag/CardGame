@@ -1,19 +1,19 @@
-using AniDrag.EventBus;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-
+using AniDrag.EventBus;
+//DONE
 public class CreateRoomView : MonoBehaviour
 {
-    public TMP_InputField nameInput;
-    public Slider ptSlider;
+    [SerializeField] private TMP_InputField nameInput;
     [SerializeField] private TMP_Text pointsCounter;
-    public Button createRoom;
-
+    [SerializeField] private Slider ptSlider;
+    [SerializeField] private Button createRoom;
     private void OnEnable()
     {
         createRoom.onClick.AddListener(CreateRoom);
         ptSlider.onValueChanged.AddListener(UpdatePtText);
+
     }
 
     private void OnDisable()
@@ -24,13 +24,8 @@ public class CreateRoomView : MonoBehaviour
     }
 
     // Slider value is float, not int
-    private void UpdatePtText(float val)
-    {
-        pointsCounter.text = $"PT: {Mathf.RoundToInt(val)}";
-    }
+    private void UpdatePtText(float val) => pointsCounter.text = $"PT: {Mathf.RoundToInt(val)}";
+    private void CreateRoom() => EventBus<CreateRoom>.Publish(new CreateRoom(nameInput.text, (int)ptSlider.value));
 
-    void CreateRoom()
-    {
-        EventBus<CreateRoom>.Publish(new CreateRoom(nameInput.text, (int)ptSlider.value));
-    }
+
 }

@@ -1135,6 +1135,9 @@ MonoBehaviour:
   refreshRoomsButton: {fileID: 1842100803}
   content: {fileID: 1952342725}
   prg_roomEntry: {fileID: 2899785121206405426, guid: d8cfe7472338c4349977d8be00f2c76d, type: 3}
+  Panel_CreateRoom: {fileID: 0}
+  Panel_WaitingForHost: {fileID: 0}
+  Panel_HostRoom: {fileID: 0}
 --- !u!114 &878013059
 MonoBehaviour:
   m_ObjectHideFlags: 0

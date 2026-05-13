@@ -1,3 +1,4 @@
+using AniDrag.EventBus;
 using System;
 using System.Collections.Generic;
 using TMPro;
@@ -6,67 +7,91 @@ using UnityEngine.UI;
 
 public class LobbyView : MonoBehaviour
 {
-    // TO DO: Room entry needs to pass it self in to SelectRoom Action<RoomEntry> selectRoom.
-    // TO DO: Handle room joining then on the info panel.
     [Header("Player Info")]
-    public TMP_Text playerNameText;
+    [SerializeField] private TMP_Text playerNameText;
+    [SerializeField] private Button createRoomBtn;
+    [SerializeField] private Button refreshRoomsButton;
     public Button disconnectBtn;
-    public Button createRoomBtn;
-    public Button refreshRoomsButton;
 
     [Header("Room List")]
-    public Transform content;
-    public GameObject prg_roomEntry;
+    [SerializeField] private Transform content;
+    [SerializeField] private GameObject prf_roomEntry;
 
-    public Action<bool> OnEnableButtons;
-    private List<RoomEntryView> roomEntries = new List<RoomEntryView>();
+    [Header("Room List")]
+    public GameObject Panel_CreateRoom;
+    public GameObject Panel_WaitingForHost;
+    public GameObject Panel_HostRoom;
+
+    private Dictionary<int, RoomEntryView> roomEntries = new();
+
+    EventBinding<DisableButtons> disableButtonsBainding;
 
     private void Start()
     {
-        OnEnableButtons += EnableButtons;
-        createRoomBtn.onClick.AddListener(DissableButtons);
+        createRoomBtn.onClick.AddListener(OnCreateBtnRoomPressed);
+
+        disableButtonsBainding = new EventBinding<DisableButtons>(DisableButtons);
+        EventBus<DisableButtons>.Subscribe(disableButtonsBainding);
+
+        refreshRoomsButton.onClick.AddListener(() => EventBus<RefreshRooms>.Publish(new RefreshRooms()));
     }
     public void SetPlayerName(string name)
     {
         if (playerNameText != null) playerNameText.text = name;
     }
-    void EnableButtons(bool enabled)
+    void DisableButtons(DisableButtons e)
     {
-        disconnectBtn.interactable = enabled;
-        createRoomBtn.interactable = enabled;
-        refreshRoomsButton.interactable = enabled;
+        disconnectBtn.interactable = e.isEnabled;
+        createRoomBtn.interactable = e.isEnabled;
+        refreshRoomsButton.interactable = e.isEnabled;
     }
 
+
+    #region Room Creation 
     public void ClearRoomList()
     {
         foreach (var entry in roomEntries)
             Destroy(entry.gameObject);
         roomEntries.Clear();
     }
-    /// <summary>
-    /// Used To Set the Join Btn On Click event
-    /// </summary>
-    /// <param name="data"></param>
-    /// <returns></returns>
     public RoomEntryView CreateRoomEntry(RoomEntryData data)
     {
-        GameObject go = Instantiate(prg_roomEntry, content);
+        GameObject go = Instantiate(prf_roomEntry, content);
         var entry = go.GetComponent<RoomEntryView>();
-        entry.Initialize(data.roomName, data.pointGoal, data.currParticipants, data.ID);
-        roomEntries.Add(entry);
+        entry.Initialize(data);
+        roomEntries.Add(data.ID, entry);
         return entry;
     }
 
-    void DissableButtons()
+    // First Call when opening this view this request server for a lsist of eneries
+    public void PopulateRoomList(List<RoomEntryData> pRoomEntries)
     {
-        OnEnableButtons?.Invoke(false);
+        foreach( var entry in pRoomEntries)
+            CreateRoomEntry(entry);
     }
+
+    public void UpdateRoomsList(List<RoomEntryData> pRoomEntries)
+    {
+        foreach(var entry in pRoomEntries)
+        {
+            if(entry.isInGame)
+                roomEntries.Remove(entry.ID);
+            roomEntries[entry.ID].UpdateParticipants(entry.currParticipants);
+        }
+    }
+    void OnCreateBtnRoomPressed()
+    {
+        bool isActive = Panel_CreateRoom.gameObject.activeSelf;
+        Panel_CreateRoom.SetActive(!isActive);EventBus<DisableButtons>.Publish(new DisableButtons(!isActive));
+    }
+
+    #endregion
 
     private void OnDestroy()
     {
-        OnEnableButtons -= EnableButtons;
+        EventBus<DisableButtons>.Subscribe(disableButtonsBainding);
         createRoomBtn.onClick.RemoveAllListeners();
-        disconnectBtn.onClick.RemoveAllListeners();
-        refreshRoomsButton.onClick.RemoveAllListeners();    
+        disconnectBtn.onClick.RemoveListener(() => Client.Instance.Disconnect());
+        refreshRoomsButton.onClick.RemoveListener(() => EventBus<RefreshRooms>.Publish(new RefreshRooms()));
     }
 }

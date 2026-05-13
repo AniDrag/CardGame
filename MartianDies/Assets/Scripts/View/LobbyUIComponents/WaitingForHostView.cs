@@ -1,25 +1,40 @@
-using UnityEngine;
-using UnityEngine.UI;
+using AniDrag.EventBus;
 using AniDrag.UI.Animations;
 using TMPro;
-
+using UnityEngine;
+using UnityEngine.UI;
+// DONE
 public class WaitingForHostView : MonoBehaviour
 {
-    public Button leaveRoom;
+    [SerializeField] private Button leaveRoom;
     [SerializeField] private TMP_Text WaitingText;
-    [SerializeField] public TMP_Text roomDetails; // RoomName\n Point Goal: xxpt \n participants / 4;
+    [SerializeField] public TMP_Text roomDetails;
     [SerializeField] private TextCoroutineAnimator animation;
+
+    EventBinding<UpdateRoomParticipants> updateRoomParticipantsBinding;
+    EventBinding<JoinRoom> joinRoomBinding;
 
 
     private string _roomName;
     private int _participants;
     private int _pointGoal;
-
-    public void OnJoin(string roomName, int participants, int pointGoal)
+    private void OnEnable()
     {
-        _roomName = roomName;
-        _participants = participants;
-        _pointGoal = pointGoal;
+        animation.StartAnimation();
+        leaveRoom.onClick.AddListener(() => EventBus<LeaveRoom>.Publish(new LeaveRoom()));
+
+        updateRoomParticipantsBinding = new EventBinding<UpdateRoomParticipants>(UpdateParticipantsInRoom);
+        EventBus<UpdateRoomParticipants>.Subscribe(updateRoomParticipantsBinding);
+
+        joinRoomBinding = new EventBinding<JoinRoom>(OnJoin);
+        EventBus<JoinRoom>.Subscribe(joinRoomBinding);
+
+    }
+    public void OnJoin(JoinRoom e)
+    {
+        _roomName = e.roomName;
+        _participants = e.participants;
+        _pointGoal = e.pointGoal;
         UpdateDisplay();
     }
 
@@ -37,5 +52,8 @@ public class WaitingForHostView : MonoBehaviour
     private void OnDisable()
     {
         animation.StopAnimation();
+        leaveRoom.onClick.RemoveListener(() => EventBus<LeaveRoom>.Publish(new LeaveRoom()));
+        EventBus<JoinRoom>.Unsubscribe(joinRoomBinding);
+        EventBus<UpdateRoomParticipants>.Unsubscribe(updateRoomParticipantsBinding);
     }
 }
