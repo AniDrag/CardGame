@@ -256,7 +256,7 @@ public class TcpServer
         // Create a dummy connection with loopback IP and random port
         lock (_sync)
         {
-            var fakeEndpoint = new IPEndPoint(IPAddress.Loopback, new Random().Next(10000, 60000));
+            var fakeEndpoint = new IPEndPoint(IPAddress.Loopback, new Random().Next(50000, 60000));
             var fakeConn = new TcpNetworkConnection(new TcpClient()); // minimal, just for storage
             int id = _nextId++;
             var client = new ClientInfo
@@ -331,7 +331,7 @@ public class TcpServer
         {
             if (!_rooms.TryGetValue(roomName, out var room)) return false;
             if (room.GameStarted) return false;
-            room.GameStarted = true;
+            room.GameStarted = true;// A cunction that sets game started
             Console.WriteLine($"Room '{roomName}' started.");
             return true;
         }

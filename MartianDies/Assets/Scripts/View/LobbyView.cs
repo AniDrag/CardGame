@@ -22,18 +22,19 @@ public class LobbyView : MonoBehaviour
     public GameObject Panel_WaitingForHost;
     public GameObject Panel_HostRoom;
 
-    private Dictionary<int, RoomEntryView> roomEntries = new();
+    private Dictionary<string, RoomEntryView> roomEntries = new();
 
     EventBinding<DisableButtons> disableButtonsBainding;
 
     private void Start()
     {
         createRoomBtn.onClick.AddListener(OnCreateBtnRoomPressed);
+        disconnectBtn.onClick.AddListener(() => Client.Instance.Disconnect());
+        refreshRoomsButton.onClick.AddListener(() => EventBus<RefreshRooms>.Publish(new RefreshRooms()));
 
         disableButtonsBainding = new EventBinding<DisableButtons>(DisableButtons);
         EventBus<DisableButtons>.Subscribe(disableButtonsBainding);
 
-        refreshRoomsButton.onClick.AddListener(() => EventBus<RefreshRooms>.Publish(new RefreshRooms()));
     }
     public void SetPlayerName(string name)
     {
@@ -50,34 +51,38 @@ public class LobbyView : MonoBehaviour
     #region Room Creation 
     public void ClearRoomList()
     {
-        foreach (var entry in roomEntries)
+        foreach (var entry in roomEntries.Values)
             Destroy(entry.gameObject);
         roomEntries.Clear();
     }
-    public RoomEntryView CreateRoomEntry(RoomEntryData data)
+    public RoomEntryView CreateRoomEntry(RoomDataModel data)
     {
         GameObject go = Instantiate(prf_roomEntry, content);
         var entry = go.GetComponent<RoomEntryView>();
         entry.Initialize(data);
-        roomEntries.Add(data.ID, entry);
+        roomEntries.Add(data.roomName, entry);
         return entry;
     }
 
     // First Call when opening this view this request server for a lsist of eneries
-    public void PopulateRoomList(List<RoomEntryData> pRoomEntries)
+    public void PopulateRoomList(List<RoomDataModel> pRoomEntries)
     {
         foreach( var entry in pRoomEntries)
             CreateRoomEntry(entry);
     }
 
-    public void UpdateRoomsList(List<RoomEntryData> pRoomEntries)
+    public void UpdateRoomsList(List<RoomDataModel> pRoomEntries)
     {
         foreach(var entry in pRoomEntries)
         {
             if(entry.isInGame)
-                roomEntries.Remove(entry.ID);
-            roomEntries[entry.ID].UpdateParticipants(entry.currParticipants);
+                roomEntries.Remove(entry.roomName);
+            roomEntries[entry.roomName].UpdateParticipants(entry.participantCount);
         }
+    }
+    public void UpdateRoomVisuals(string roomName)
+    {
+       // roomEntries[roomName].Initialize();
     }
     void OnCreateBtnRoomPressed()
     {

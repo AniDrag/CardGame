@@ -2,6 +2,7 @@ using AniDrag.EventBus;
 using OSCTools;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -15,21 +16,20 @@ public class LobbyController : MonoBehaviour
     [SerializeField] private CreateRoomView createRoomView;
     [SerializeField] private WaitingForHostView waitingForHostView;
 
-    private const string CREATE_ROOM_TIMEOUT = "create_room";
-    private const string JOIN_ROOM_TIMEOUT = "join_room";
-    private const string REFRESH_ROOMS_TIMEOUT = "refresh_rooms";
+   
 
     private bool pendingRoomCreation = false;
     private string pendingRoomName = null;
-    private RoomEntryData currentRoom;    // room the player is in (host or joined)
+    private RoomDataModel currentRoom;    // room the player is in (host or joined)
     private bool gameStarted = false;
-    private Dictionary<string, RoomEntryData> rooms = new Dictionary<string, RoomEntryData>();
+    private Dictionary<string, RoomDataModel> rooms = new Dictionary<string, RoomDataModel>();
 
-    private EventBinding<StartGame> startGameBinding;
-    private EventBinding<CloseHostedRoom> closeHostedRoomBinding;
-    private EventBinding<LeaveRoom> leaveRoomBinding;
-    private EventBinding<CreateRoom> createRoomBinding;
 
+    #region Timeouts 
+    private const string CREATE_ROOM_TIMEOUT = "create_room";
+    private const string JOIN_ROOM_TIMEOUT = "join_room";
+    private const string REFRESH_ROOMS_TIMEOUT = "refresh_rooms";
+    #endregion
     #region OCT Strings
     //OSC message Identifiers
     private const string DISCONECT = "/disconect";
@@ -58,6 +58,10 @@ public class LobbyController : MonoBehaviour
 
     #region Event Bindings
     EventBinding<JoinRoom> joinRoomBinding;
+    private EventBinding<StartGame> startGameBinding;
+    private EventBinding<CloseHostedRoom> closeHostedRoomBinding;
+    private EventBinding<LeaveRoom> leaveRoomBinding;
+    private EventBinding<CreateRoom> createRoomBinding;
     #endregion
 
     private void Start()//---
@@ -67,7 +71,6 @@ public class LobbyController : MonoBehaviour
             Debug.LogError("Client instance missing!");
             return;
         }
-
         if (view == null) view = FindFirstObjectByType<LobbyView>();
         if (hostRoomView == null) hostRoomView = FindFirstObjectByType<HostRoomView>();
         if (createRoomView == null) createRoomView = FindFirstObjectByType<CreateRoomView>();
@@ -75,18 +78,30 @@ public class LobbyController : MonoBehaviour
 
         if (!NullChecks()) return;
 
-
         view.SetPlayerName(Client.Instance.Username);
 
         // Subscribe to OSC messages
-        Client.Instance.AddListener("/room_update", OnRoomUpdate, OSCUtil.STRING, OSCUtil.INT, OSCUtil.INT, OSCUtil.STRING, OSCUtil.INT, OSCUtil.BOOL);
+        //Client.Instance.AddListener("/room_update", OnRoomUpdate, OSCUtil.STRING, OSCUtil.INT, OSCUtil.INT, OSCUtil.STRING, OSCUtil.INT, OSCUtil.BOOL);
+        OSCListenersSetup();
+
+        Client.Instance.OnDisconnected += OnDisconnected;
+
+        // Subscribe to UI events via EventBus
+        BindingsSetup();
+
+        //RefreshRoomList();   // CONNECT
+        Client.Log("Lobby scene loaded.");
+    }
+
+    void OSCListenersSetup()
+    {
         Client.Instance.AddListener("/game_started", OnGameStarted);
         Client.Instance.AddListener("/error", OnError, OSCUtil.STRING);
         Client.Instance.AddListener("/room_list", OnRoomList);
         Client.Instance.AddListener("/room_list_update", OnRoomListUpdate);
-        Client.Instance.OnDisconnected += OnDisconnected;
-
-        // Subscribe to UI events via EventBus
+    }
+    void BindingsSetup()
+    {
         startGameBinding = new EventBinding<StartGame>(OnStartGame);
         closeHostedRoomBinding = new EventBinding<CloseHostedRoom>(OnCloseRoom);
         leaveRoomBinding = new EventBinding<LeaveRoom>(OnLeaveRoom);
@@ -95,11 +110,6 @@ public class LobbyController : MonoBehaviour
         EventBus<StartGame>.Subscribe(startGameBinding);
         EventBus<CloseHostedRoom>.Subscribe(closeHostedRoomBinding);
         EventBus<LeaveRoom>.Subscribe(leaveRoomBinding);
-
-
-        // Request initial room list
-        //RefreshRoomList();   // CONNECT
-        Client.Log("Lobby scene loaded.");
     }
 
     bool NullChecks()
@@ -246,8 +256,7 @@ public class LobbyController : MonoBehaviour
             Client.Log($"Server: Failed to create room. Error: {msg.ReadString()}");
             return;
         }
-        RoomEntryData entry = new RoomEntryData(
-            msg.ReadInt(),
+        RoomDataModel entry = new RoomDataModel(
             msg.ReadString(),
             msg.ReadString(),
             msg.ReadInt(),
@@ -279,16 +288,16 @@ public class LobbyController : MonoBehaviour
             string host = msg.ReadString();
             int playerCount = msg.ReadInt();
             int state = msg.ReadInt();
-            var room = new RoomEntryData(i, name, host, goal, playerCount);
+            var room = new RoomDataModel(name, host, goal, playerCount);
             rooms[name] = room;
         }
-        GenerateRoomEntries();
+        view.PopulateRoomList(rooms.Values.ToList());
     }
     private void OnRoomListUpdate(OSCMessageIn msg, IPEndPoint sender)
     {
         string operation = msg.ReadString(); // "add", "update", "remove"
         string jsonRoom = msg.ReadString();   // JSON of RoomEntryData
-        var room = JsonUtility.FromJson<RoomEntryData>(jsonRoom);
+        var room = JsonUtility.FromJson<RoomDataModel>(jsonRoom);
 
         switch (operation)
         {
@@ -300,8 +309,8 @@ public class LobbyController : MonoBehaviour
                 rooms.Remove(room.roomName);
                 break;
         }
-        GenerateRoomEntries();
-    }//---
+        view.PopulateRoomList(rooms.Values.ToList());
+    }
 
     #endregion
 
@@ -309,15 +318,9 @@ public class LobbyController : MonoBehaviour
     // ---------------------- Cleanup ----------------------
     private void OnDestroy()
     {
-        if (view != null)
-        {
-            view.disconnectBtn.onClick.RemoveListener(HandleDisconnect);
-            view.createRoomBtn.onClick.RemoveAllListeners();
-            view.refreshRoomsButton.onClick.RemoveAllListeners();
-        }
+        
         if (Client.Instance != null)
         {
-            Client.Instance.RemoveListener("/room_update", OnRoomUpdate);
             Client.Instance.RemoveListener("/game_started", OnGameStarted);
             Client.Instance.RemoveListener("/error", OnError);
             Client.Instance.RemoveListener("/room_list", OnRoomList);

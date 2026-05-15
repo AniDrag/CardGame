@@ -3,6 +3,7 @@ using AniDrag.UI.Animations;
 using UnityEngine;
 using UnityEngine.UI;
 
+
 public class RollAgainView : MonoBehaviour
 {
     [SerializeField] private Button rollAgain;
@@ -12,8 +13,9 @@ public class RollAgainView : MonoBehaviour
 
     private void Start()
     {
-        rollAgain.onClick.AddListener(() => EventBus<StakeRoll>.Publish(new StakeRoll(true)));
-        dontRollAgain.onClick.AddListener(() => EventBus<StakeRoll>.Publish(new StakeRoll(false)));
+        animation = GetComponent<TextCoroutineAnimator>();
+        rollAgain.onClick.AddListener(Play);
+        dontRollAgain.onClick.AddListener(Fold);
         Hide();
     }
 
@@ -27,5 +29,16 @@ public class RollAgainView : MonoBehaviour
     {
         panel.SetActive(false);
         if (animation != null) animation.StopAnimation();
+    }
+
+    void Play()
+    {
+        EventBus<StakeRoll>.Publish(new StakeRoll(true));
+        Hide();
+    }
+    void Fold()
+    {
+        EventBus<StakeRoll>.Publish(new StakeRoll(false));
+        Hide();
     }
 }

@@ -4,6 +4,10 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
+/// <summary>
+/// This works as intended. it swithes image depending on type and sensd the controller the info needed when pressed
+/// Should be subbed to enable clikc depending if it is ur turn it will be interactibel else it will be uninteractible since ur not on turn.
+/// </summary>
 public class DiceView : MonoBehaviour
 {
     private Button dieButton;

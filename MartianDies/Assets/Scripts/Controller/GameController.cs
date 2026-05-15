@@ -6,6 +6,26 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
+/// <summary>
+/// Rundow of what i need to accomplish.
+/// 
+///     No. 1:
+///         make sure that it goes.
+///         on round start server rolls dice. 
+///         Display rolled dice on clients.
+///         Server also precalculates and takes all Tanks off the list and adds them to danger slot. so server sends a GameStateModel -> dice rolled list.
+///         -> we send tanks to the danger line since precalculated that we cant select those. Instantiates the dice.
+///         prevent clients from taking action if not on turn.
+///         once rolled dice.interactibel = true and player selects a die 
+///         -> trigger Dice type. 
+///         -> server confirms type,
+///         -> we see if u colected points or whatever, client will do it after server confirms selection of dice,
+///         -> Server sends a lsit of rolled dice if no points aquired his turn. else open stakes roll view.
+///         -> make sure we update view and move in a circle for the players pressent, update charts of point conters per round and a winner screen.
+///         Winner: name of winer
+///         YOU LOSE example if u didnt win ull see U Lose and the winers name on the bottom.
+/// </summary>
+
 public class GameController : MonoBehaviour
 {
     [Header("View references")]
@@ -21,6 +41,23 @@ public class GameController : MonoBehaviour
     private bool isYourTurn = false;
     private int myPlayerIndex = -1;
     private List<int> currentDice = new();
+    #region OCT Strings
+    //OSC message Identifiers
+    private const string SELECT_DICE = "/selected_dice";
+    private const string STAKE_ROLL = "/roll_accepted";
+
+    //OSC message Identifiers Subscriptions Replies
+    private const string S_DISCONECT = "/disconected";
+    private const string S_YOUR_TURN = "/your_turn";
+    private const string S_DICE_ROLLED = "/dice_rolled";
+    private const string S_GAME_STATE = "/game_state";
+    private const string S_DICE_SELECTED = "/dice_selected";
+    private const string S_GAME_ANNOUNCMENT = "/game_announcement";
+    private const string S_ROUND_RESULTS = "/round_results";
+    private const string S_STAKE_ROLL_PROMPT = "/stake_prompt";
+
+
+    #endregion
 
     private void Start()
     {
@@ -28,25 +65,29 @@ public class GameController : MonoBehaviour
         SubscribeEvents();
         SubscribeOSC();
         // Listen for turn and dice updates
-        Client.Instance.AddListener("/your_turn", OnYourTurn, OSCUtil.STRING);
-        Client.Instance.AddListener("/dice_rolled", OnDiceRolled);
-        Client.Instance.AddListener("/game_state", OnGameState);
-        Client.Instance.AddListener("/game_announcement", OnAnouncmentMade, OSCUtil.STRING);
-        Client.Instance.AddListener("/round_results", OnResultsPublished, OSCUtil.STRING);
-        Client.Instance.AddListener("/stake_prompt", OnStakePrompt, OSCUtil.BOOL, OSCUtil.STRING);
+        Client.Instance.AddListener(S_DISCONECT, OnDisconnectedReplie);
+        Client.Instance.AddListener(S_YOUR_TURN, OnYourTurn, OSCUtil.STRING);
+        Client.Instance.AddListener(S_DICE_ROLLED, OnDiceRolled);
+        Client.Instance.AddListener(S_GAME_STATE, OnGameState);
+        Client.Instance.AddListener(S_DICE_SELECTED, OnGameState);
+        Client.Instance.AddListener(S_GAME_ANNOUNCMENT, OnAnouncmentMade, OSCUtil.STRING);
+        Client.Instance.AddListener(S_ROUND_RESULTS, OnResultsPublished, OSCUtil.STRING);
+        Client.Instance.AddListener(S_STAKE_ROLL_PROMPT, OnStakePrompt, OSCUtil.BOOL, OSCUtil.STRING);
     }
 
     private void OnDestroy()
     {
         UnsubscribeEvents();
-        if (Client.Instance != null)
+        if (Client.Instance != null) 
         {
-            Client.Instance.RemoveListener("/your_turn", OnYourTurn);
-            Client.Instance.RemoveListener("/dice_rolled", OnDiceRolled);
-            Client.Instance.RemoveListener("/game_state", OnGameState);
-            Client.Instance.RemoveListener("/game_announcement", OnAnouncmentMade);
-            Client.Instance.RemoveListener("/round_results", OnResultsPublished);
-            Client.Instance.RemoveListener("/stake_prompt", OnStakePrompt);
+            Client.Instance.RemoveListener(S_DISCONECT, OnDisconnectedReplie);
+            Client.Instance.RemoveListener(S_YOUR_TURN, OnYourTurn);
+            Client.Instance.RemoveListener(S_DICE_ROLLED, OnDiceRolled);
+            Client.Instance.RemoveListener(S_GAME_STATE, OnGameState);
+            Client.Instance.RemoveListener(S_DICE_SELECTED, OnGameState);
+            Client.Instance.RemoveListener(S_GAME_ANNOUNCMENT, OnAnouncmentMade);
+            Client.Instance.RemoveListener(S_ROUND_RESULTS, OnResultsPublished);
+            Client.Instance.RemoveListener(S_STAKE_ROLL_PROMPT, OnStakePrompt);
         }
     }
 
@@ -101,7 +142,8 @@ public class GameController : MonoBehaviour
     void OnResultsPublished(OSCMessageIn msg, IPEndPoint sender)
     {
         string result = msg.ReadString();
-        roundResultsView.ShowResults(result);
+        Client.Log(result);
+        EventBus<RoundResults>.Publish(new RoundResults(result));
     }
 
     void OnAnouncmentMade(OSCMessageIn msg, IPEndPoint sender)
@@ -162,4 +204,10 @@ public class GameController : MonoBehaviour
         rollAgainView.Hide();
     }
     #endregion
+
+    private void OnDisconnectedReplie(OSCMessageIn msg, IPEndPoint sender)
+    {
+        Client.Log("Player gave up: " + msg.ReadString());
+        SceneManager.LoadScene("0_SC_MainMenu");
+    }
 }

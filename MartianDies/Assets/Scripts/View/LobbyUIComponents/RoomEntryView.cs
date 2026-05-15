@@ -9,7 +9,7 @@ public class RoomEntryView : MonoBehaviour
     [SerializeField] private TMP_Text roomDetails;
     [SerializeField] private TMP_Text participants;
     [SerializeField] private Button joinBtn;
-    private RoomEntryData data;
+    private RoomDataModel data;
 
     EventBinding<DisableButtons> disableButtonsBainding;
 
@@ -43,35 +43,16 @@ public class RoomEntryView : MonoBehaviour
     {
         joinBtn.interactable = e.isEnabled;
     }
-    public void Initialize(RoomEntryData pData)
+    public void Initialize(RoomDataModel pData)
     {
         data = pData;
         Sub();
         roomDetails.text = $"{data.roomName}    Goal: {data.pointGoal}pt";
-        UpdateParticipants(data.currParticipants);
+        UpdateParticipants(data.participantCount);
     }
     public void UpdateParticipants(int count)
     {
         participants.text = $"{count} / 4";
     }
     
-}
-[Serializable]
-public class RoomEntryData
-{
-    public int ID;
-    public string roomName;
-    public string host;
-    public int pointGoal;
-    public int currParticipants;
-    public bool isInGame;
-    public RoomEntryData(int pId, string pRoomName, string pHostName, int pPointGoal, int pCurrParticipants, bool pIsInGame = false)
-    {
-        ID = pId;
-        roomName = pRoomName;
-        host = pHostName;
-        pointGoal = pPointGoal;
-        currParticipants = pCurrParticipants;
-        isInGame = pIsInGame;
-    }
 }

@@ -16,14 +16,14 @@ public struct UpdateRoomParticipants : IEvBusEvent
 }
 public struct JoinRoom : IEvBusEvent
 {
-    public RoomEntryData data;
-    public JoinRoom(RoomEntryData pData)
+    public RoomDataModel data;
+    public JoinRoom(RoomDataModel pData)
     {
         data = pData;
     }
 }
 
-#endregion
+
 
 #region Waiting for host Events
 public struct LeaveRoom : IEvBusEvent { }
@@ -44,11 +44,9 @@ public struct CreateRoom : IEvBusEvent
 }
 public struct RoomCreated : IEvBusEvent
 {
-    public bool succes;
-    public RoomEntryData data;
-    public RoomCreated(bool pSucces, RoomEntryData pData)
+    public RoomDataModel data;
+    public RoomCreated(bool pSucces, RoomDataModel pData)
     {
-        succes = pSucces;
         data = pData;
     }
 }
@@ -58,10 +56,11 @@ public struct RoomCreated : IEvBusEvent
 public struct StartGame : IEvBusEvent { }
 public struct CloseHostedRoom : IEvBusEvent { }
 #endregion
+#endregion
 
 // Only for Hosting room or when waiting room
 
-
+#region Game Events
 public struct SelectedDiceType : IEvBusEvent
 {
     public int diceType;
@@ -73,3 +72,10 @@ public struct StakeRoll : IEvBusEvent
     public bool doReRoll;
     public StakeRoll(bool pDoReRoll) => doReRoll = pDoReRoll;
 }
+public struct RoundResults : IEvBusEvent
+{
+    public string msg;
+    public RoundResults(string pMsg) => msg = pMsg;
+}
+
+#endregion

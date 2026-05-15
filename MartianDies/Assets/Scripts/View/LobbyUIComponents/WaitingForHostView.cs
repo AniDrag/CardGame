@@ -14,10 +14,7 @@ public class WaitingForHostView : MonoBehaviour
     EventBinding<UpdateRoomParticipants> updateRoomParticipantsBinding;
     EventBinding<JoinRoom> joinRoomBinding;
 
-
-    private string _roomName;
-    private int _participants;
-    private int _pointGoal;
+    private RoomDataModel data;
     private void OnEnable()
     {
         animation.StartAnimation();
@@ -32,21 +29,19 @@ public class WaitingForHostView : MonoBehaviour
     }
     public void OnJoin(JoinRoom e)
     {
-        _roomName = e.roomName;
-        _participants = e.participants;
-        _pointGoal = e.pointGoal;
+        data = e.data;
         UpdateDisplay();
     }
 
     public void UpdateParticipantsInRoom(UpdateRoomParticipants e)
     {
-        _participants = e.participants;
+        data.participantCount = e.participants;
         UpdateDisplay();
     }
 
     private void UpdateDisplay()
     {
-        roomDetails.text = $"{_roomName}\n{_participants} / 4\nPoint Goal: {_pointGoal}";
+        roomDetails.text = $"{data.roomName}\n{data.participantCount} / 4\nPoint Goal: {data.pointGoal}";
     }
 
     private void OnDisable()
