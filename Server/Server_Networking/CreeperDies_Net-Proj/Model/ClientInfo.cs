@@ -1,11 +1,6 @@
 ﻿using NetworkConnections;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace CreeperDies_Net_Proj.Model
+namespace CreeperDice_Net_Proj.Model
 {
     public class ClientInfo
     {

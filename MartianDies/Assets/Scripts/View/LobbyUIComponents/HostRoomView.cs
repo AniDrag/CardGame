@@ -1,4 +1,5 @@
 using AniDrag.EventBus;
+using System;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -15,6 +16,7 @@ public class HostRoomView : MonoBehaviour
     string _roomName;
     int _points;
     int participants;
+
     private void OnEnable()
     {
         if (startGame == null)
@@ -27,13 +29,16 @@ public class HostRoomView : MonoBehaviour
             Client.Log($"Null Reference: Button [ closeRoom ] not found on: {this.gameObject.name}");
             return;
         }
-
-        startGame.onClick.AddListener(EventBus_Publish_StartGame);
-        closeRoom.onClick.AddListener(EventBus_Publish_CloseHostedRoom);
-
+        startGame.onClick.AddListener(() => EventBus<StartGame>.Publish(new StartGame()));
+        closeRoom.onClick.AddListener(() => EventBus<CloseHostedRoom>.Publish(new CloseHostedRoom()));
         updateRoomParticipantsBinding = new EventBinding<UpdateRoomParticipants>(UpdateParticipantsInRoom);
         EventBus<UpdateRoomParticipants>.Subscribe(updateRoomParticipantsBinding);
+        roomCreatedBinding = new EventBinding<RoomCreated>(OnCreate);
+        EventBus<RoomCreated>.Subscribe(roomCreatedBinding);
+
+        
     }
+
 
     private void OnDisable()
     {
@@ -43,6 +48,7 @@ public class HostRoomView : MonoBehaviour
             closeRoom.onClick.RemoveListener(EventBus_Publish_CloseHostedRoom);
 
         EventBus<UpdateRoomParticipants>.Unsubscribe(updateRoomParticipantsBinding);
+        
     }
 
     public void OnCreate(RoomCreated e)

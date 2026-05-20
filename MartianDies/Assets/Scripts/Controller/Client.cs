@@ -27,7 +27,7 @@ public class Client : MonoBehaviour
     public static event Action<string> OnConsoleLog;
     public event Action OnConnected;
     public event Action<string> OnDisconnected;
-
+    private List<Action> pendingListeners = new();
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -38,17 +38,15 @@ public class Client : MonoBehaviour
         Instance = this;
         DontDestroyOnLoad(gameObject);
         Application.quitting += () => Disconnect();
-        AddListener("/shutdown", OnShutdown, OSCUtil.STRING);
-        AddListener("/server_message", OnServerMessage, OSCUtil.STRING);
+        AddListener(Msg.S_SHUTDOWN, OnShutdown, OSCUtil.STRING);
+        AddListener(Msg.S_SERVER_MESSAGE, OnServerMessage, OSCUtil.STRING);
     }
 
     private void Update()
     {
-        // Process queued packets on main thread
         while (incomingPackets.TryDequeue(out byte[] packet))
             ProcessPacket(packet);
 
-        // Poll the TCP connection for new packets (non‑blocking)
         if (IsConnected && connection != null)
         {
             while (connection.Available() > 0)
@@ -78,10 +76,8 @@ public class Client : MonoBehaviour
 
         try
         {
-            // Use the TcpNetworkConnection constructor that connects to a remote server
             connection = new TcpNetworkConnection(ip, port, asynchronous: true, fast: true);
 
-            // Wait for connection to complete (simple polling, you can improve with a timeout)
             float timeout = 5f;
             float startTime = Time.time;
             while (connection.Status == ConnectionStatus.Connecting && Time.time - startTime < timeout)
@@ -173,7 +169,15 @@ public class Client : MonoBehaviour
     public void AddListener(string address, Action<OSCMessageIn, IPEndPoint> handler, params string[] args)
     {
         if (dispatcher != null)
+        {
             dispatcher.AddListener(address, handler, args);
+        }
+        else
+        {
+            // Queue the listener for later
+            pendingListeners.Add(() => dispatcher.AddListener(address, handler, args));
+            Log("Debug", $"Queued listener for {address}");
+        }
     }
 
     public void RemoveListener(string address, Action<OSCMessageIn, IPEndPoint> handler)
@@ -186,7 +190,7 @@ public class Client : MonoBehaviour
         string reason = msg.ReadString();
         Log("System", $"Server shutdown: {reason}");
         Disconnect(reason);
-        UnityEngine.SceneManagement.SceneManager.LoadSceneAsync("0_SC_MainMenu");
+        UnityEngine.SceneManagement.SceneManager.LoadSceneAsync(Scenes.MainMenu);
     }
 
     public void Disconnect(string reason = "User requested")
@@ -195,7 +199,7 @@ public class Client : MonoBehaviour
 
         if (IsConnected && connection != null && connection.Status == ConnectionStatus.Connected)
         {
-            var disconnectMsg = new OSCMessageOut("/disconnect");
+            var disconnectMsg = new OSCMessageOut(Msg.C_DISCONNECT);
             Send(disconnectMsg);
         }
 

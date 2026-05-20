@@ -1,18 +1,13 @@
-﻿using System;
+﻿using OSCTools;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CreeperDies_Net_Proj.Model
+namespace CreeperDice_Net_Proj.Model
 {
-    using OSCTools;
-    using System;
-    using System;
-    using System.Net;
-    using System.Threading;
-    using System.Threading;
-
     public class ConsoleCommandHandler
     {
         private readonly TcpServer _server;
@@ -179,6 +174,23 @@ namespace CreeperDies_Net_Proj.Model
                             Console.WriteLine(_server.StartRoom(parts[1]) ? "Room started." : "Room not found or already started.");
                         else Console.WriteLine("Usage: /startRoom <name>");
                         break;
+                    case "/joinroom":
+                        if (parts.Length > 1)
+                        {
+                            string roomName = parts[1];
+                            var selected = _server.GetSelectedUser();
+                            if (selected == null) Console.WriteLine("No user selected. Use /selectUser first.");
+                            else
+                            {
+                                // Simulate join request
+                                var fakeMsg = new OSCMessageOut(Msg.C_JOIN_ROOM).AddString(roomName);
+                                var fakeEndpoint = new IPEndPoint(IPAddress.Loopback, 12345);
+                                _server.Dispatcher.HandlePacket(fakeMsg.GetBytes(), fakeEndpoint);
+                                Console.WriteLine($"Sent join request for {selected.Name} to room {roomName}");
+                            }
+                        }
+                        else Console.WriteLine("Usage: /joinroom <roomName>");
+                        break;
 
                     // Game commands (simple stubs – you can expand later)
                     case "/stakesroll":
@@ -248,6 +260,7 @@ namespace CreeperDies_Net_Proj.Model
             Console.WriteLine("/allRooms                    - List all rooms");
             Console.WriteLine("/findRoom <name>             - Check if a room exists");
             Console.WriteLine("/createRoom <name> <points>  - Create a room (requires selected host)");
+            Console.WriteLine("/joinroom <roomName>         - Join a room (requires selected host)");
             Console.WriteLine("/closeRoom <name>            - Close a room and kick players");
             Console.WriteLine("/startRoom <name>            - Start a room (sets GameStarted true)");
             Console.WriteLine("\nGame Commands (placeholders)");

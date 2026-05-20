@@ -1,3 +1,4 @@
+using AniDrag.EventBus;
 using OSCTools;
 using System.Net;
 using UnityEngine;
@@ -6,7 +7,9 @@ using UnityEngine.SceneManagement;
 public class MainMenuController : MonoBehaviour
 {
     [SerializeField] private MainMenuView view;
-    private const string REGISTER_TIMEOUT_ID = "register";
+
+    EventBinding<Connect> connectBinding;
+
 
     private void Start()
     {
@@ -16,15 +19,17 @@ public class MainMenuController : MonoBehaviour
             return;
         }
 
-        view.OnConnectClicked += HandleConnect;
+        // Subscribe to event bus with correct signature
+        connectBinding = new EventBinding<Connect>(ConnectClicked);
+        EventBus<Connect>.Subscribe(connectBinding);
 
-        // Subscribe to the connected event
-        Client.Instance.OnConnected += OnClientConnected;
+        // Subscribe to client connection event
+        Client.Instance.OnConnected += OnConnect;
 
         Client.Log("Loaded Main Menu");
     }
 
-    private void HandleConnect()
+    private void ConnectClicked(Connect e)
     {
         string username = view.GetUsername();
         string ip = view.GetServerIp();
@@ -41,28 +46,27 @@ public class MainMenuController : MonoBehaviour
         }
 
         Client.Log($"Connecting to {ip}...");
-        Client.Instance.Connect(ip, 55000);
+        Client.Instance.Connect(ip, Msg.PORT);
     }
 
-    private void OnClientConnected()
+    private void OnConnect()
     {
-        // Now we are connected – add listeners and send registration
         string username = view.GetUsername();
 
-        Client.Instance.AddListener("/registered", OnRegistered, OSCUtil.INT, OSCUtil.STRING);
-        Client.Log("Debug", "Registered /registered listener");
-        Client.Instance.AddListener("/debug", (msg, sender) => {
-            Client.Log("Debug", $"Wildcard caught: {msg.header} with tags {msg.typeTag}");
-        });
+        // Add listener for registration reply
+        Client.Instance.AddListener(Msg.S_REGISTERED, OnRegistered, OSCUtil.INT, OSCUtil.STRING);
+        Client.Log("Debug", "Registered listener for S_REGISTERED");
 
-        Client.Instance.StartTimeout(REGISTER_TIMEOUT_ID, 10f, () =>
+        // Start timeout for registration
+        Client.Instance.StartTimeout(Msg.REGISTER_TIMEOUT_ID, 10f, () =>
         {
+            Client.Log("Registration timeout – disconnecting");
             view.SetButtonsInteractable(true);
-            Client.Instance.RemoveListener("/registered", OnRegistered); 
             Client.Instance.Disconnect();
         });
 
-        OSCMessageOut regMsg = new OSCMessageOut("/register");
+        // Send registration
+        OSCMessageOut regMsg = new OSCMessageOut(Msg.C_REGISTER);
         regMsg.AddString(username);
         Client.Instance.Send(regMsg);
     }
@@ -71,19 +75,18 @@ public class MainMenuController : MonoBehaviour
     {
         Client.Log("Debug", "OnRegistered ENTERED");
 
-        Client.Instance.CancelTimeout(REGISTER_TIMEOUT_ID);
+        Client.Instance.CancelTimeout(Msg.REGISTER_TIMEOUT_ID);
         int id = msg.ReadInt();
         Client.Instance.Username = msg.ReadString();
         Client.Log($"Registration successful! Server assigned ID {id} to {name}");
         Client.Instance.RemoveListener("/registered", OnRegistered);
-        SceneManager.LoadScene("1_Sc_Lobby");
+        SceneManager.LoadSceneAsync(Scenes.Lobby);
     }
 
     private void OnDisable()
     {
-        if (view != null)
-            view.OnConnectClicked -= HandleConnect;
+        EventBus<Connect>.Unsubscribe(connectBinding);
         if (Client.Instance != null)
-            Client.Instance.OnConnected -= OnClientConnected;
+            Client.Instance.OnConnected -= OnConnect;
     }
 }

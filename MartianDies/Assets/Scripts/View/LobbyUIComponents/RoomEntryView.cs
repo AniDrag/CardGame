@@ -11,7 +11,7 @@ public class RoomEntryView : MonoBehaviour
     [SerializeField] private Button joinBtn;
     private RoomDataModel data;
 
-    EventBinding<DisableButtons> disableButtonsBainding;
+    EventBinding<EnableButtons> disableButtonsBainding;
 
     private void OnEnable()
     {
@@ -30,16 +30,16 @@ public class RoomEntryView : MonoBehaviour
     void Sub()
     {
         joinBtn.onClick.AddListener(() => EventBus<JoinRoom>.Publish(new JoinRoom(data)));
-        disableButtonsBainding = new EventBinding<DisableButtons>(DisableButtons);
-        EventBus<DisableButtons>.Subscribe(disableButtonsBainding);
+        disableButtonsBainding = new EventBinding<EnableButtons>(DisableButtons);
+        EventBus<EnableButtons>.Subscribe(disableButtonsBainding);
     }
     void UnSub()
     {
         joinBtn.onClick.RemoveListener(() => EventBus<JoinRoom>.Publish(new JoinRoom(data)));
-        EventBus<DisableButtons>.Unsubscribe(disableButtonsBainding);
+        EventBus<EnableButtons>.Unsubscribe(disableButtonsBainding);
     }
 
-    void DisableButtons(DisableButtons e)
+    void DisableButtons(EnableButtons e)
     {
         joinBtn.interactable = e.isEnabled;
     }

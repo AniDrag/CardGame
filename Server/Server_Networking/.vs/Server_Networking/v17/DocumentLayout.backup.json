@@ -3,8 +3,28 @@
   "WorkspaceRootPath": "D:\\Repo\\CardGame\\Server\\Server_Networking\\",
   "Documents": [
     {
+      "AbsoluteMoniker": "D:0:0:{26140A43-AD02-470E-A1D1-9DCEA875CFC6}|CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj|d:\\repo\\cardgame\\server\\server_networking\\creeperdies_net-proj\\model\\lobbystate.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{26140A43-AD02-470E-A1D1-9DCEA875CFC6}|CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj|solutionrelative:creeperdies_net-proj\\model\\lobbystate.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{26140A43-AD02-470E-A1D1-9DCEA875CFC6}|CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj|d:\\repo\\cardgame\\server\\server_networking\\creeperdies_net-proj\\model\\tcpserver.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{26140A43-AD02-470E-A1D1-9DCEA875CFC6}|CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj|solutionrelative:creeperdies_net-proj\\model\\tcpserver.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{26140A43-AD02-470E-A1D1-9DCEA875CFC6}|CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj|d:\\repo\\cardgame\\server\\server_networking\\creeperdies_net-proj\\model\\msg.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{26140A43-AD02-470E-A1D1-9DCEA875CFC6}|CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj|solutionrelative:creeperdies_net-proj\\model\\msg.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{26140A43-AD02-470E-A1D1-9DCEA875CFC6}|CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj|d:\\repo\\cardgame\\server\\server_networking\\creeperdies_net-proj\\model\\consolecommands.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{26140A43-AD02-470E-A1D1-9DCEA875CFC6}|CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj|solutionrelative:creeperdies_net-proj\\model\\consolecommands.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{26140A43-AD02-470E-A1D1-9DCEA875CFC6}|CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj|d:\\repo\\cardgame\\server\\server_networking\\creeperdies_net-proj\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{26140A43-AD02-470E-A1D1-9DCEA875CFC6}|CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj|solutionrelative:creeperdies_net-proj\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{26140A43-AD02-470E-A1D1-9DCEA875CFC6}|CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj|d:\\repo\\cardgame\\server\\server_networking\\creeperdies_net-proj\\model\\gamestate.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{26140A43-AD02-470E-A1D1-9DCEA875CFC6}|CreeperDies_Net-Proj\\CreeperDies_Net-Proj.csproj|solutionrelative:creeperdies_net-proj\\model\\gamestate.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -14,20 +34,85 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 0,
+          "SelectedChildIndex": 4,
           "Children": [
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 4,
               "Title": "Program.cs",
               "DocumentMoniker": "D:\\Repo\\CardGame\\Server\\Server_Networking\\CreeperDies_Net-Proj\\Program.cs",
               "RelativeDocumentMoniker": "CreeperDies_Net-Proj\\Program.cs",
               "ToolTip": "D:\\Repo\\CardGame\\Server\\Server_Networking\\CreeperDies_Net-Proj\\Program.cs",
               "RelativeToolTip": "CreeperDies_Net-Proj\\Program.cs",
-              "ViewState": "AgIAAOEBAAAAAAAAAAAAwPkBAAA1AAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-05-04T23:37:39.017Z",
+              "WhenOpened": "2026-05-19T23:56:16.134Z",
               "IsPinned": true,
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "Msg.cs",
+              "DocumentMoniker": "D:\\Repo\\CardGame\\Server\\Server_Networking\\CreeperDies_Net-Proj\\Model\\Msg.cs",
+              "RelativeDocumentMoniker": "CreeperDies_Net-Proj\\Model\\Msg.cs",
+              "ToolTip": "D:\\Repo\\CardGame\\Server\\Server_Networking\\CreeperDies_Net-Proj\\Model\\Msg.cs",
+              "RelativeToolTip": "CreeperDies_Net-Proj\\Model\\Msg.cs",
+              "ViewState": "AgIAABoAAAAAAAAAAAAQwDwAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-20T02:06:52.063Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "TcpServer.cs",
+              "DocumentMoniker": "D:\\Repo\\CardGame\\Server\\Server_Networking\\CreeperDies_Net-Proj\\Model\\TcpServer.cs",
+              "RelativeDocumentMoniker": "CreeperDies_Net-Proj\\Model\\TcpServer.cs",
+              "ToolTip": "D:\\Repo\\CardGame\\Server\\Server_Networking\\CreeperDies_Net-Proj\\Model\\TcpServer.cs",
+              "RelativeToolTip": "CreeperDies_Net-Proj\\Model\\TcpServer.cs",
+              "ViewState": "AgIAAKkBAAAAAAAAAAAowB8CAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-20T00:18:19.326Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "ConsoleCommands.cs",
+              "DocumentMoniker": "D:\\Repo\\CardGame\\Server\\Server_Networking\\CreeperDies_Net-Proj\\Model\\ConsoleCommands.cs",
+              "RelativeDocumentMoniker": "CreeperDies_Net-Proj\\Model\\ConsoleCommands.cs",
+              "ToolTip": "D:\\Repo\\CardGame\\Server\\Server_Networking\\CreeperDies_Net-Proj\\Model\\ConsoleCommands.cs",
+              "RelativeToolTip": "CreeperDies_Net-Proj\\Model\\ConsoleCommands.cs",
+              "ViewState": "AgIAAIgAAAAAAAAAAAAcwLkAAABlAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-20T00:06:07.54Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "LobbyState.cs",
+              "DocumentMoniker": "D:\\Repo\\CardGame\\Server\\Server_Networking\\CreeperDies_Net-Proj\\Model\\LobbyState.cs",
+              "RelativeDocumentMoniker": "CreeperDies_Net-Proj\\Model\\LobbyState.cs",
+              "ToolTip": "D:\\Repo\\CardGame\\Server\\Server_Networking\\CreeperDies_Net-Proj\\Model\\LobbyState.cs",
+              "RelativeToolTip": "CreeperDies_Net-Proj\\Model\\LobbyState.cs",
+              "ViewState": "AgIAAIcAAAAAAAAAAADwv9gAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-20T00:03:33.783Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "GameState.cs",
+              "DocumentMoniker": "D:\\Repo\\CardGame\\Server\\Server_Networking\\CreeperDies_Net-Proj\\Model\\GameState.cs",
+              "RelativeDocumentMoniker": "CreeperDies_Net-Proj\\Model\\GameState.cs",
+              "ToolTip": "D:\\Repo\\CardGame\\Server\\Server_Networking\\CreeperDies_Net-Proj\\Model\\GameState.cs",
+              "RelativeToolTip": "CreeperDies_Net-Proj\\Model\\GameState.cs",
+              "ViewState": "AgIAABAAAAAAAAAAAAAgwCAAAAAzAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-20T00:01:50.886Z",
               "EditorCaption": ""
             }
           ]

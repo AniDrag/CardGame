@@ -1,12 +1,13 @@
 using AniDrag.EventBus;
 
 
-
+public struct Connect : IEvBusEvent { }
+public struct Disconnect : IEvBusEvent { }
 #region Lobby Events
-public struct DisableButtons : IEvBusEvent
+public struct EnableButtons : IEvBusEvent
 {
     public bool isEnabled;
-    public DisableButtons(bool pIsEnabled) => isEnabled = pIsEnabled;
+    public EnableButtons(bool pIsEnabled) => isEnabled = pIsEnabled;
 }
 public struct RefreshRooms : IEvBusEvent { }
 public struct UpdateRoomParticipants : IEvBusEvent
@@ -61,10 +62,31 @@ public struct CloseHostedRoom : IEvBusEvent { }
 // Only for Hosting room or when waiting room
 
 #region Game Events
+
+/// <summary>
+/// Send dice type -> store selection type and coutn.
+/// Wait for recive :
+///     Success remove dice from rolled view add to designated spot.
+///     Faliure: msg Invalid dice.
+///     
+/// </summary>
+
+
 public struct SelectedDiceType : IEvBusEvent
 {
     public int diceType;
     public SelectedDiceType(int pDiceType) => diceType = pDiceType;
+}
+public struct SelectDiceReplie : IEvBusEvent
+{
+    public bool allowed;
+    public SelectDiceReplie(bool pAllowed) => allowed = pAllowed;
+}
+
+public struct GameAnnouncment: IEvBusEvent
+{
+    public string msg;
+    public GameAnnouncment(string pMsg) => msg = pMsg; 
 }
 
 public struct StakeRoll : IEvBusEvent
@@ -72,6 +94,7 @@ public struct StakeRoll : IEvBusEvent
     public bool doReRoll;
     public StakeRoll(bool pDoReRoll) => doReRoll = pDoReRoll;
 }
+
 public struct RoundResults : IEvBusEvent
 {
     public string msg;

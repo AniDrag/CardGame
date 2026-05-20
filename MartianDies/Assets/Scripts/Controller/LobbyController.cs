@@ -1,13 +1,10 @@
 using AniDrag.EventBus;
 using OSCTools;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-
-
 
 public class LobbyController : MonoBehaviour
 {
@@ -16,268 +13,201 @@ public class LobbyController : MonoBehaviour
     [SerializeField] private CreateRoomView createRoomView;
     [SerializeField] private WaitingForHostView waitingForHostView;
 
-   
-
     private bool pendingRoomCreation = false;
     private string pendingRoomName = null;
-    private RoomDataModel currentRoom;    // room the player is in (host or joined)
-    private bool gameStarted = false;
-    private Dictionary<string, RoomDataModel> rooms = new Dictionary<string, RoomDataModel>();
-
-
-    #region Timeouts 
-    private const string CREATE_ROOM_TIMEOUT = "create_room";
-    private const string JOIN_ROOM_TIMEOUT = "join_room";
-    private const string REFRESH_ROOMS_TIMEOUT = "refresh_rooms";
-    #endregion
-    #region OCT Strings
-    //OSC message Identifiers
-    private const string DISCONECT = "/disconect";
-    private const string REFRESH_ROOMS = "/refresh_rooms";
-    private const string CREATE_ROOM = "/crate_room";
-    private const string JOIN_ROOM = "/join_room";
-    private const string START_GAME = "/start_game";
-    private const string CLOSE_ROOM = "/close_room";
-    private const string LEAVE_ROOM = "/leave_room";
-
-    //OSC message Identifiers Subscriptions Replies
-    private const string S_DISCONECT = "/disconected";
-    private const string S_REFRESH_ROOMS = "/update_room_list";
-    private const string S_CREATE_ROOM = "/room_created";
-    private const string S_JOIN_ROOM = "/room_joined";
-    private const string S_START_GAME = "/game_started";
-    private const string S_CLOSE_ROOM = "/room_closed";
-    private const string S_LEAVE_ROOM = "/room_left";
-
-    //OSC other server message subscriptions
-    private const string S_RECIVE_ROOM_LIST = "/room_list";
-    private const string S_DISCONET_FROM_ROOM = "/host_closed_room";
-
-    #endregion
-
+    private RoomDataModel currentRoom;
+    private Dictionary<string, RoomDataModel> rooms = new();
 
     #region Event Bindings
-    EventBinding<JoinRoom> joinRoomBinding;
+    private EventBinding<JoinRoom> joinRoomBinding;
     private EventBinding<StartGame> startGameBinding;
     private EventBinding<CloseHostedRoom> closeHostedRoomBinding;
     private EventBinding<LeaveRoom> leaveRoomBinding;
     private EventBinding<CreateRoom> createRoomBinding;
+    private EventBinding<RefreshRooms> refreshRoomsBinding;
+    private EventBinding<Disconnect> disconnectBinding;
     #endregion
 
-    private void Start()//---
+    private void Start()
     {
-        if (Client.Instance == null)
-        {
-            Debug.LogError("Client instance missing!");
-            return;
-        }
+        if (!ValidateReferences()) return;
+        view.SetPlayerName(Client.Instance.Username);
+        SubscribeOSC();
+        BindingsSetup();
+        Client.Instance.OnDisconnected += OnDisconnected;
+        RefreshRoomList();
+        createRoomView.AddListener += RoomCreateListener;
+    }
+
+    private bool ValidateReferences()
+    {
+        if (Client.Instance == null) { Debug.LogError("Client instance missing!"); return false; }
         if (view == null) view = FindFirstObjectByType<LobbyView>();
         if (hostRoomView == null) hostRoomView = FindFirstObjectByType<HostRoomView>();
         if (createRoomView == null) createRoomView = FindFirstObjectByType<CreateRoomView>();
         if (waitingForHostView == null) waitingForHostView = FindFirstObjectByType<WaitingForHostView>();
-
-        if (!NullChecks()) return;
-
-        view.SetPlayerName(Client.Instance.Username);
-
-        // Subscribe to OSC messages
-        //Client.Instance.AddListener("/room_update", OnRoomUpdate, OSCUtil.STRING, OSCUtil.INT, OSCUtil.INT, OSCUtil.STRING, OSCUtil.INT, OSCUtil.BOOL);
-        OSCListenersSetup();
-
-        Client.Instance.OnDisconnected += OnDisconnected;
-
-        // Subscribe to UI events via EventBus
-        BindingsSetup();
-
-        //RefreshRoomList();   // CONNECT
-        Client.Log("Lobby scene loaded.");
+        return view != null && hostRoomView != null && createRoomView != null && waitingForHostView != null;
     }
 
-    void OSCListenersSetup()
+    private void SubscribeOSC()
     {
-        Client.Instance.AddListener("/game_started", OnGameStarted);
-        Client.Instance.AddListener("/error", OnError, OSCUtil.STRING);
-        Client.Instance.AddListener("/room_list", OnRoomList);
-        Client.Instance.AddListener("/room_list_update", OnRoomListUpdate);
+        var client = Client.Instance;
+        client.AddListener(Msg.S_ROOM_LIST, OnRoomList);
+        client.AddListener(Msg.S_ROOM_UPDATE, OnRoomUpdate);
+        client.AddListener(Msg.S_GAME_STARTED, OnGameStarted);
+        client.AddListener(Msg.S_ERROR, OnError, OSCUtil.STRING);
+        client.AddListener(Msg.S_CREATED_ROOM, OnNewRoom);
+        client.AddListener(Msg.S_JOINED, OnRoomJoined);
+
     }
-    void BindingsSetup()
+    
+    private void BindingsSetup()
     {
-        startGameBinding = new EventBinding<StartGame>(OnStartGame);
-        closeHostedRoomBinding = new EventBinding<CloseHostedRoom>(OnCloseRoom);
-        leaveRoomBinding = new EventBinding<LeaveRoom>(OnLeaveRoom);
-        createRoomBinding = new EventBinding<CreateRoom>(OnCrateRoom);
+        createRoomBinding = new EventBinding<CreateRoom>(CreateRoom);
+        joinRoomBinding = new EventBinding<JoinRoom>(JoinRoom);
+        startGameBinding = new EventBinding<StartGame>(StartGame);
+        closeHostedRoomBinding = new EventBinding<CloseHostedRoom>(CloseRoom);
+        leaveRoomBinding = new EventBinding<LeaveRoom>(LeaveRoom);
+        refreshRoomsBinding = new EventBinding<RefreshRooms>(e => RefreshRoomList());
+        disconnectBinding = new EventBinding<Disconnect>(Disconect);
+
         EventBus<CreateRoom>.Subscribe(createRoomBinding);
+        EventBus<JoinRoom>.Subscribe(joinRoomBinding);
         EventBus<StartGame>.Subscribe(startGameBinding);
         EventBus<CloseHostedRoom>.Subscribe(closeHostedRoomBinding);
         EventBus<LeaveRoom>.Subscribe(leaveRoomBinding);
+        EventBus<RefreshRooms>.Subscribe(refreshRoomsBinding);
+        EventBus<Disconnect>.Subscribe(disconnectBinding);
     }
 
-    bool NullChecks()
+    void RoomCreateListener(bool enable)
     {
-        if (Client.Instance == null)
+        if (enable)
         {
-            Debug.LogError("Client instance missing!");
-            return false;
+            Client.Instance.AddListener(Msg.S_CREATED_ROOM, OnRoomCreated);
         }
-
-        if (view == null)
-        {
-            Debug.LogError("LobbyView not assigned!");
-            return false;
-        }
-        if (hostRoomView == null)
-        {
-            Debug.LogError("host Room View not assigned!");
-            return false;
-        }
-        if (createRoomView == null)
-        {
-            Debug.LogError("create Room View not assigned!");
-            return false;
-        }
-        if (waitingForHostView == null)
-        {
-            Debug.LogError("waiting For Host View not assigned!");
-            return false;
-        }
-        return true;
+        else
+            Client.Instance.RemoveListener(Msg.S_CREATED_ROOM, OnRoomCreated);
     }
 
-    void SetUsername() => view.SetPlayerName(Client.Instance.Username);
-
-
-    #region Semd OSC messages
-    void RefreshRoomList(RefreshRooms e) => Client.Instance.Send(new OSCMessageOut(REFRESH_ROOMS));
-
-    private void OnJoinRoom(JoinRoom e)
+    private void OnDestroy()
     {
-        if (string.IsNullOrEmpty(e.data.roomName)) { Client.Log("Join room failed: invalid room name."); return; }
-        pendingRoomName = e.data.roomName;
-        EventBus<DisableButtons>.Publish(new DisableButtons(false));
-        
-        //StartTimeout
-        Client.Instance.StartTimeout(JOIN_ROOM_TIMEOUT, 5f, () =>
+        if (Client.Instance != null)
         {
-            Client.Log("Join room timeout.");
-            EventBus<DisableButtons>.Publish(new DisableButtons(true));
-            pendingRoomName = null;
-        });
-
-        //Send message
-        var msg = new OSCMessageOut(JOIN_ROOM);
-        msg.AddString(e.data.roomName);
-        Client.Instance.Send(msg);
-    }
-    private void OnLeaveRoom(LeaveRoom e)
-    {
-        Client.Instance.Send(new OSCMessageOut(LEAVE_ROOM));
-        currentRoom = null;
-        EventBus<DisableButtons>.Publish(new DisableButtons(true));
-        waitingForHostView.gameObject.SetActive(false);
+            Client.Instance.RemoveListener(Msg.S_ROOM_LIST, OnRoomList);
+            Client.Instance.RemoveListener(Msg.S_ROOM_UPDATE, OnRoomUpdate);
+            Client.Instance.RemoveListener(Msg.S_GAME_STARTED, OnGameStarted);
+            Client.Instance.RemoveListener(Msg.S_ERROR, OnError);
+            Client.Instance.OnDisconnected -= OnDisconnected;
+        }
+        createRoomView.AddListener -= RoomCreateListener;
+        EventBus<CreateRoom>.Unsubscribe(createRoomBinding);
+        EventBus<JoinRoom>.Unsubscribe(joinRoomBinding);
+        EventBus<StartGame>.Unsubscribe(startGameBinding);
+        EventBus<CloseHostedRoom>.Unsubscribe(closeHostedRoomBinding);
+        EventBus<LeaveRoom>.Unsubscribe(leaveRoomBinding);
+        EventBus<RefreshRooms>.Unsubscribe(refreshRoomsBinding);
+        EventBus<Disconnect>.Unsubscribe(disconnectBinding);
     }
 
-    private void OnCrateRoom(CreateRoom e)
+    #region Send OSC
+    private void RefreshRoomList() => Client.Instance.Send(new OSCMessageOut(Msg.C_LIST_ROOMS));
+
+    /// <summary>
+    /// DONE
+    /// Requests to create room, timeout will reset stuff
+    /// </summary>
+    /// <param name="e">[roomName, pointGoal]</param>
+    private void CreateRoom(CreateRoom e)
     {
         if (pendingRoomCreation) return;
         string roomName = e.roomName.Trim();
         int pointGoal = e.pointGoal;
-        if (string.IsNullOrEmpty(roomName))
-        {
-            Client.Log("Create room failed: empty name.");
-            return;
+        if (string.IsNullOrEmpty(roomName)) 
+        { 
+            Client.Log("Room name empty"); 
+            return; 
         }
-        if (pointGoal < 10 || pointGoal > 80)
-        {
-            Client.Log("Create room failed: Point Goal must be between 10 and 80.");
-            return;
+        if (pointGoal < 10 || pointGoal > 80) 
+        { 
+            Client.Log("Point goal must be 10-80"); 
+            return; 
         }
-        createRoomView.gameObject.SetActive(true);
-        pendingRoomName = roomName;
-        EventBus<DisableButtons>.Publish(new DisableButtons(false));
 
-        Client.Instance.StartTimeout(CREATE_ROOM_TIMEOUT, 8f, () =>
+        pendingRoomCreation = true;
+        pendingRoomName = roomName;
+
+        EventBus<EnableButtons>.Publish(new EnableButtons(false));
+
+        Client.Instance.StartTimeout(Msg.CREATE_ROOM_TIMEOUT, 8f, () =>
         {
-            Client.Log("Create room timeout.");
-            EventBus<DisableButtons>.Publish(new DisableButtons(true));
-            createRoomView.gameObject.SetActive(false);
-            pendingRoomName = null;
+            Client.Log("Create room timeout");
             pendingRoomCreation = false;
+            pendingRoomName = null;
+            EventBus<EnableButtons>.Publish(new EnableButtons(true));
+            createRoomView.gameObject.SetActive(true);
         });
 
-        var msg = new OSCMessageOut(CREATE_ROOM);
-        msg.AddString(roomName).AddInt(pointGoal);
+        var msg = new OSCMessageOut(Msg.C_CREATE_ROOM).AddString(roomName).AddInt(pointGoal);
         Client.Instance.Send(msg);
     }
-    private void OnCloseRoom(CloseHostedRoom e)
+    /// <summary>
+    /// DONE
+    /// Requests join room, cancles buttons so no requests can be added. timeout enables them.
+    /// </summary>
+    /// <param name="e"></param>
+    private void JoinRoom(JoinRoom e)
     {
-        Client.Instance.Send(new OSCMessageOut(CLOSE_ROOM));
-        currentRoom = null;
-        EventBus<DisableButtons>.Publish(new DisableButtons(true));
-        hostRoomView.gameObject.SetActive(false);
+        if (string.IsNullOrEmpty(e.data.roomName)) return;
+        pendingRoomName = e.data.roomName;
+        EventBus<EnableButtons>.Publish(new EnableButtons(false));
+
+        Client.Instance.StartTimeout(Msg.JOIN_ROOM_TIMEOUT, 5f, () =>
+        {
+            Client.Log("Join room timeout");
+            EventBus<EnableButtons>.Publish(new EnableButtons(true));
+            pendingRoomName = null;
+        });
+
+        var msg = new OSCMessageOut(Msg.C_JOIN_ROOM).AddString(e.data.roomName);
+        Client.Instance.Send(msg);
     }
 
-    private void OnStartGame() => Client.Instance.Send(new OSCMessageOut(START_GAME));
+    private void Disconect(Disconnect e) => Client.Instance.Send(new OSCMessageOut(Msg.C_DISCONNECT));
+    private void StartGame() => Client.Instance.Send(new OSCMessageOut(Msg.C_START_GAME));
+    private void CloseRoom() => Client.Instance.Send(new OSCMessageOut(Msg.C_CLOSE_ROOM));
+    private void LeaveRoom() => Client.Instance.Send(new OSCMessageOut(Msg.C_LEAVE_ROOM));
     #endregion
-    
 
-
-    #region OSC Msg recivers
+    #region OSC Receivers
     private void OnGameStarted(OSCMessageIn msg, IPEndPoint sender)
     {
-        if (pendingRoomName != null)
-        {
-            Client.Log("Game started – loading game scene.");
-            SceneManager.LoadScene("2_Sc_Game"); // change to your game scene name
-            return;
-        }
-
+        if (pendingRoomName == null) return;
+        Client.Log("Game started – loading scene");
+        SceneManager.LoadScene(Scenes.Game);
     }
+
     private void OnError(OSCMessageIn msg, IPEndPoint sender)
     {
         string error = msg.ReadString();
-        Client.Log("Lobby Error", error);
+        Client.Log("Server error: " + error);
+        EventBus<EnableButtons>.Publish(new EnableButtons(true));
+        pendingRoomCreation = false;
+        pendingRoomName = null;
+        Client.Instance.CancelTimeout(Msg.CREATE_ROOM_TIMEOUT);
+        Client.Instance.CancelTimeout(Msg.JOIN_ROOM_TIMEOUT);
+        createRoomView.gameObject.SetActive(false);
     }
+
     private void OnDisconnected(string reason)
     {
         Client.Log("Disconnected from server in lobby: " + reason);
-        Client.Instance.CancelTimeout(CREATE_ROOM_TIMEOUT);
-        Client.Instance.CancelTimeout(JOIN_ROOM_TIMEOUT);
-        SceneManager.LoadScene("0_SC_MainMenu");
-    }
-    public void OnCreateRoomSuccess(OSCMessageIn msg, IPEndPoint sender)
-    {
-        Client.Log("Room Creation sucessfull");
-
-        Client.Instance.CancelTimeout(CREATE_ROOM_TIMEOUT);
-        bool succes = msg.ReadBool();
-
-        if(!succes)
-        {
-            Client.Log($"Server: Failed to create room. Error: {msg.ReadString()}");
-            return;
-        }
-        RoomDataModel entry = new RoomDataModel(
-            msg.ReadString(),
-            msg.ReadString(),
-            msg.ReadInt(),
-            msg.ReadInt(),
-            msg.ReadBool()
-            );
-        currentRoom = entry;
-        EventBus<RoomCreated>.Publish(new RoomCreated(succes, entry));
-        view.Panel_HostRoom.gameObject.SetActive(true);
-        view.Panel_CreateRoom.gameObject.SetActive(false);
+        Client.Instance.CancelTimeout(Msg.CREATE_ROOM_TIMEOUT);
+        Client.Instance.CancelTimeout(Msg.JOIN_ROOM_TIMEOUT);
+        SceneManager.LoadScene(Scenes.MainMenu);
     }
 
-    private void OnJoinSucces(OSCMessageIn msg, IPEndPoint sender)
-    {
-
-    }
-    private void OnStartGameSucces(OSCMessageIn msg, IPEndPoint sender)
-    {
-
-    }
-    private void OnRoomList(OSCMessageIn msg, IPEndPoint sender)//---
+    private void OnRoomList(OSCMessageIn msg, IPEndPoint sender)
     {
         int roomCount = msg.ReadInt();
         rooms.Clear();
@@ -287,49 +217,89 @@ public class LobbyController : MonoBehaviour
             int goal = msg.ReadInt();
             string host = msg.ReadString();
             int playerCount = msg.ReadInt();
-            int state = msg.ReadInt();
+            int state = msg.ReadInt(); // 0 = waiting, 1 = in-game (unused)
             var room = new RoomDataModel(name, host, goal, playerCount);
             rooms[name] = room;
         }
+        view.ClearRoomList();
         view.PopulateRoomList(rooms.Values.ToList());
     }
-    private void OnRoomListUpdate(OSCMessageIn msg, IPEndPoint sender)
+    /// <summary>
+    /// DONE
+    /// Sends user to the Host room screen Subbed to S_CreateRoom. when we enable the Create windw we add a listener for On roo
+    /// </summary>
+    /// <param name="msg"></param>
+    /// <param name="sender"></param>
+    private void OnRoomCreated(OSCMessageIn msg, IPEndPoint sender)
     {
-        string operation = msg.ReadString(); // "add", "update", "remove"
-        string jsonRoom = msg.ReadString();   // JSON of RoomEntryData
-        var room = JsonUtility.FromJson<RoomDataModel>(jsonRoom);
+        Client.Instance.CancelTimeout(Msg.CREATE_ROOM_TIMEOUT);
+        hostRoomView.gameObject.SetActive(true);
 
-        switch (operation)
-        {
-            case "add":
-            case "update":
-                rooms[room.roomName] = room;
-                break;
-            case "remove":
-                rooms.Remove(room.roomName);
-                break;
-        }
-        view.PopulateRoomList(rooms.Values.ToList());
-    }
+        string roomName = msg.ReadString();
+        int participantCount = msg.ReadInt();
+        int maxPlayers = msg.ReadInt();
+        string hostName = msg.ReadString();
+        int pointGoal = msg.ReadInt();
+        bool gameStarted = msg.ReadBool();
 
-    #endregion
-
-    
-    // ---------------------- Cleanup ----------------------
-    private void OnDestroy()
-    {
         
-        if (Client.Instance != null)
-        {
-            Client.Instance.RemoveListener("/game_started", OnGameStarted);
-            Client.Instance.RemoveListener("/error", OnError);
-            Client.Instance.RemoveListener("/room_list", OnRoomList);
-            Client.Instance.RemoveListener("/room_list_update", OnRoomListUpdate);
-            Client.Instance.OnDisconnected -= OnDisconnected;
-        }
+        RoomDataModel room = new RoomDataModel(roomName, hostName, pointGoal, participantCount);
+        rooms[roomName] = room;
 
-        EventBus<StartGame>.Unsubscribe(startGameBinding);
-        EventBus<CloseHostedRoom>.Unsubscribe(closeHostedRoomBinding);
-        EventBus<LeaveRoom>.Unsubscribe(leaveRoomBinding);
+        view.CreateRoomEntry(room);
+
+        currentRoom = room;
+        view.Panel_HostRoom.gameObject.SetActive(true);
+        view.Panel_CreateRoom.gameObject.SetActive(false);
+        view.Panel_WaitingForHost.gameObject.SetActive(false);
+
+
     }
+    /// <summary>
+    /// Basicly The view is enabled, dissable btn presses and well jsut wait for updates.
+    /// </summary>
+    /// <param name="msg"></param>
+    /// <param name="sender"></param>
+    private void OnRoomJoined(OSCMessageIn msg, IPEndPoint sender)
+    {
+        Client.Instance.CancelTimeout(Msg.JOIN_ROOM_TIMEOUT);
+        waitingForHostView.gameObject.SetActive(true);
+
+        string roomName = msg.ReadString();
+        int participantCount = msg.ReadInt();
+        int maxPlayers = msg.ReadInt();
+        string hostName = msg.ReadString();
+        int pointGoal = msg.ReadInt();
+        bool gameStarted = msg.ReadBool();
+
+
+        RoomDataModel room = new RoomDataModel(roomName, hostName, pointGoal, participantCount);
+        rooms[roomName].participantCount++;
+        view.UpdateRoomEntry(room); // probably should e its seperate call since if we recive a packet it goes there.
+        waitingForHostView.UpdateDisplay();
+
+
+    }
+
+    /// <summary>
+    /// Get room data, find it in Rooms and update its visuals. if the user is in its waiting part udate participants count.
+    /// When calling this it should only do, is in game now? new participant count.
+    /// if its a new room then room List should be called and arange the details.
+    /// </summary>
+    /// <param name="msg"></param>
+    /// <param name="sender"></param>
+    private void OnRoomUpdate(OSCMessageIn msg, IPEndPoint sender)
+    {
+            string roomName = msg.ReadString();
+            int participantCount = msg.ReadInt();
+            int maxPlayers = msg.ReadInt();
+            string hostName = msg.ReadString();
+            int pointGoal = msg.ReadInt();
+            bool gameStarted = msg.ReadBool();
+
+            
+            EventBus<UpdateRoomParticipants>.Publish(new UpdateRoomParticipants(participantCount));
+
+    }
+    #endregion
 }

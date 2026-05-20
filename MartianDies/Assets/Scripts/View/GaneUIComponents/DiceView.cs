@@ -1,6 +1,7 @@
 using AniDrag.EventBus;
 using System;
 using System.Collections.Generic;
+using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -10,9 +11,9 @@ using UnityEngine.UI;
 /// </summary>
 public class DiceView : MonoBehaviour
 {
-    private Button dieButton;
-    private Image dieImage;
-    [SerializeField]private DiceType dieType;
+    private Button diceBtn;
+    private Image diceImage;
+    [SerializeField]private DiceType diceType;
 
     [Header("Debug")]
     [SerializeField,Range(-1,4)] int testInt = -1;
@@ -20,16 +21,33 @@ public class DiceView : MonoBehaviour
 
     [SerializeField] private List<Sprite> possibleImages = new();
     
+    public void EnableBtn(bool enable)
+    {
+        if (enable && diceType != DiceType.Tank)
+        {
+            diceBtn.interactable = true;
 
+        }
+    }
     public void Initialize(int typeIndex, bool isSelectible = false)
     {
-        dieButton = this.transform.GetChild(0).GetComponent<Button>();
-        dieImage = GetComponent<Image>();
-        dieButton.onClick.AddListener(Debug_WasPressed);
-        if (isSelectible)
+        diceBtn = this.transform.GetChild(0).GetComponent<Button>();
+        diceImage = GetComponent<Image>();
+        diceBtn.onClick.AddListener(Debug_WasPressed);
+        switch (typeIndex)
         {
-            dieButton.interactable = isSelectible;
-            dieButton.onClick.AddListener(OnPress);
+            case 0:diceType = DiceType.Human;   break;
+            case 1:diceType = DiceType.Cow;     break;
+            case 2:diceType = DiceType.Chicken; break;
+            case 3:diceType = DiceType.Tank;    break;
+            case 4:diceType = DiceType.UFO;     break;
+            default: diceType = DiceType.Error; break;
+        }
+
+        if (isSelectible )
+        {
+            EnableBtn(isSelectible);
+            diceBtn.onClick.AddListener(OnPress);
             
         }
         SelectImage(typeIndex);
@@ -37,7 +55,7 @@ public class DiceView : MonoBehaviour
 
     void OnPress()
     {
-        EventBus<SelectedDiceType>.Publish(new SelectedDiceType((int)dieType));
+        EventBus<SelectedDiceType>.Publish(new SelectedDiceType((int)diceType));
     }
 
     void SelectImage(int type)  // 'type' comes from server, 0..4
@@ -50,7 +68,7 @@ public class DiceView : MonoBehaviour
         }
 
         // Cast the int directly to the enum – works because enum values match server ints
-        dieType = (DiceType)type;
+        diceType = (DiceType)type;
 
         // Use the same int as sprite index (assuming possibleImages order matches server ints)
         if (type >= possibleImages.Count)
@@ -59,7 +77,7 @@ public class DiceView : MonoBehaviour
             return;
         }
 
-        dieImage.sprite = possibleImages[type];
+        diceImage.sprite = possibleImages[type];
     }
     [AniDrag.Utility.Button]
     void DebugCheck_IMGCHANGE()
@@ -68,11 +86,11 @@ public class DiceView : MonoBehaviour
     }
     void Debug_WasPressed()
     {
-        Debug.Log($"I was pressed {(int)dieType}!");
+        Debug.Log($"I was pressed {(int)diceType}!");
     }
     private void OnDisable()
     {
-        dieButton.onClick.RemoveAllListeners();
+        diceBtn.onClick.RemoveAllListeners();
     }
 }
 
@@ -81,5 +99,6 @@ public enum DiceType {
     Cow,        // idx: 1 -> is a pt
     Chicken,    // idx: 2 -> is a pt
     Tank,       // idx: 3 -> is a danger / enemy
-    UFO         // idx: 4 -> is a defense / Attack power
+    UFO,         // idx: 4 -> is a defense / Attack power
+    Error
 }

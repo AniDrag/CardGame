@@ -39,7 +39,7 @@ public class WaitingForHostView : MonoBehaviour
         UpdateDisplay();
     }
 
-    private void UpdateDisplay()
+    public void UpdateDisplay()
     {
         roomDetails.text = $"{data.roomName}\n{data.participantCount} / 4\nPoint Goal: {data.pointGoal}";
     }

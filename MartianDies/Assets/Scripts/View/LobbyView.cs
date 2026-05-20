@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using static UnityEngine.EventSystems.EventTrigger;
 
 public class LobbyView : MonoBehaviour
 {
@@ -24,23 +25,23 @@ public class LobbyView : MonoBehaviour
 
     private Dictionary<string, RoomEntryView> roomEntries = new();
 
-    EventBinding<DisableButtons> disableButtonsBainding;
+    EventBinding<EnableButtons> disableButtonsBainding;
 
     private void Start()
     {
         createRoomBtn.onClick.AddListener(OnCreateBtnRoomPressed);
-        disconnectBtn.onClick.AddListener(() => Client.Instance.Disconnect());
+        disconnectBtn.onClick.AddListener(() => EventBus<Disconnect>.Publish(new Disconnect()));
         refreshRoomsButton.onClick.AddListener(() => EventBus<RefreshRooms>.Publish(new RefreshRooms()));
 
-        disableButtonsBainding = new EventBinding<DisableButtons>(DisableButtons);
-        EventBus<DisableButtons>.Subscribe(disableButtonsBainding);
+        disableButtonsBainding = new EventBinding<EnableButtons>(DisableButtons);
+        EventBus<EnableButtons>.Subscribe(disableButtonsBainding);
 
     }
     public void SetPlayerName(string name)
     {
         if (playerNameText != null) playerNameText.text = name;
     }
-    void DisableButtons(DisableButtons e)
+    void DisableButtons(EnableButtons e)
     {
         disconnectBtn.interactable = e.isEnabled;
         createRoomBtn.interactable = e.isEnabled;
@@ -51,20 +52,18 @@ public class LobbyView : MonoBehaviour
     #region Room Creation 
     public void ClearRoomList()
     {
-        foreach (var entry in roomEntries.Values)
-            Destroy(entry.gameObject);
+        for (int i = 0; i < content.childCount; i++)
+            Destroy(content.GetChild(i).gameObject);
         roomEntries.Clear();
     }
-    public RoomEntryView CreateRoomEntry(RoomDataModel data)
+    public void CreateRoomEntry(RoomDataModel data)
     {
         GameObject go = Instantiate(prf_roomEntry, content);
         var entry = go.GetComponent<RoomEntryView>();
         entry.Initialize(data);
         roomEntries.Add(data.roomName, entry);
-        return entry;
     }
 
-    // First Call when opening this view this request server for a lsist of eneries
     public void PopulateRoomList(List<RoomDataModel> pRoomEntries)
     {
         foreach( var entry in pRoomEntries)
@@ -73,30 +72,53 @@ public class LobbyView : MonoBehaviour
 
     public void UpdateRoomsList(List<RoomDataModel> pRoomEntries)
     {
-        foreach(var entry in pRoomEntries)
+        foreach (var entry in pRoomEntries)
         {
-            if(entry.isInGame)
+            if (entry.isInGame)
+            {
+                if (roomEntries.ContainsKey(entry.roomName))
+                    Destroy(roomEntries[entry.roomName].gameObject);
                 roomEntries.Remove(entry.roomName);
-            roomEntries[entry.roomName].UpdateParticipants(entry.participantCount);
+            }
+            else
+            {
+                if (roomEntries.TryGetValue(entry.roomName, out var roomEntry))
+                    roomEntry.UpdateParticipants(entry.participantCount);
+                else
+                    CreateRoomEntry(entry);
+            }
         }
     }
     public void UpdateRoomVisuals(string roomName)
     {
        // roomEntries[roomName].Initialize();
     }
+    public void UpdateRoomEntry(RoomDataModel room)
+    {
+        if (roomEntries.TryGetValue(room.roomName, out var entry))
+        {
+            entry.UpdateParticipants(room.participantCount);
+            // Update other fields if needed
+        }
+        else
+        {
+            CreateRoomEntry(room);
+        }
+    }
     void OnCreateBtnRoomPressed()
     {
         bool isActive = Panel_CreateRoom.gameObject.activeSelf;
-        Panel_CreateRoom.SetActive(!isActive);EventBus<DisableButtons>.Publish(new DisableButtons(!isActive));
+        Panel_CreateRoom.SetActive(!isActive);
+        EventBus<EnableButtons>.Publish(new EnableButtons(!isActive));
     }
 
     #endregion
 
     private void OnDestroy()
     {
-        EventBus<DisableButtons>.Subscribe(disableButtonsBainding);
+        EventBus<EnableButtons>.Unsubscribe(disableButtonsBainding);
         createRoomBtn.onClick.RemoveAllListeners();
-        disconnectBtn.onClick.RemoveListener(() => Client.Instance.Disconnect());
-        refreshRoomsButton.onClick.RemoveListener(() => EventBus<RefreshRooms>.Publish(new RefreshRooms()));
+        disconnectBtn.onClick.RemoveListener(() => EventBus<Disconnect>.Publish(new Disconnect()));
+        refreshRoomsButton.onClick.RemoveAllListeners();
     }
 }

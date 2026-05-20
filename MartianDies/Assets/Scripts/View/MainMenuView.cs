@@ -1,3 +1,4 @@
+using AniDrag.EventBus;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -8,12 +9,6 @@ public class MainMenuView : MonoBehaviour
     [SerializeField] public TMP_InputField serverIpInput;
     [SerializeField] public Button connectButton;
     [SerializeField] public Button resetIpAdres;
-    
-    // Events for controller
-    public System.Action OnConnectClicked;
-    public System.Action OnToggleConsole;
-
-    private bool consoleVisible = false;
 
     void Start()
     {
@@ -22,7 +17,7 @@ public class MainMenuView : MonoBehaviour
         if (connectButton == null)
             Debug.LogError("Connect button not found!");
         else
-            connectButton.onClick.AddListener(() => OnConnectClicked?.Invoke());
+            connectButton.onClick.AddListener(() => EventBus<Connect>.Publish(new Connect()));
 
         if (resetIpAdres == null)
             resetIpAdres = transform.Find("BTN_DefaultIP")?.GetComponent<Button>();
@@ -49,5 +44,6 @@ public class MainMenuView : MonoBehaviour
     private void OnDestroy()
     {
         connectButton.onClick.RemoveAllListeners();
+        resetIpAdres.onClick.RemoveAllListeners();
     }
 }

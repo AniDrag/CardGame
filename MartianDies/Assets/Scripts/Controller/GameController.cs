@@ -28,186 +28,191 @@ using UnityEngine.UI;
 
 public class GameController : MonoBehaviour
 {
-    [Header("View references")]
+    [Header("View References")]
     [SerializeField] private GameView view;
     [SerializeField] private ConfirmChoiceView confirmChoice;
     [SerializeField] private RollAgainView rollAgainView;
     [SerializeField] private RoundResultsView roundResultsView;
-    [SerializeField] private AnouncmentsView anouncmentsView;
+    [SerializeField] private AnnouncementsView announcementsView;
 
-    private EventBinding<SelectedDiceType> selectedDiceTypeBinding;
-    private EventBinding<StakeRoll> stakeRollBinding;
+    // Event bindings
+    private EventBinding<SelectedDiceType> _selectedDiceBinding;
+    private EventBinding<StakeRoll> _stakeRollBinding;
 
-    private bool isYourTurn = false;
-    private int myPlayerIndex = -1;
-    private List<int> currentDice = new();
-    #region OCT Strings
-    //OSC message Identifiers
-    private const string SELECT_DICE = "/selected_dice";
-    private const string STAKE_ROLL = "/roll_accepted";
-
-    //OSC message Identifiers Subscriptions Replies
-    private const string S_DISCONECT = "/disconected";
-    private const string S_YOUR_TURN = "/your_turn";
-    private const string S_DICE_ROLLED = "/dice_rolled";
-    private const string S_GAME_STATE = "/game_state";
-    private const string S_DICE_SELECTED = "/dice_selected";
-    private const string S_GAME_ANNOUNCMENT = "/game_announcement";
-    private const string S_ROUND_RESULTS = "/round_results";
-    private const string S_STAKE_ROLL_PROMPT = "/stake_prompt";
-
-
-    #endregion
+    private bool _isMyTurn = false;
+    private int _myPlayerIndex = -1;
 
     private void Start()
     {
-        if (!CheckReferences()) return;
+        if (!ValidateReferences()) return;
         SubscribeEvents();
         SubscribeOSC();
-        // Listen for turn and dice updates
-        Client.Instance.AddListener(S_DISCONECT, OnDisconnectedReplie);
-        Client.Instance.AddListener(S_YOUR_TURN, OnYourTurn, OSCUtil.STRING);
-        Client.Instance.AddListener(S_DICE_ROLLED, OnDiceRolled);
-        Client.Instance.AddListener(S_GAME_STATE, OnGameState);
-        Client.Instance.AddListener(S_DICE_SELECTED, OnGameState);
-        Client.Instance.AddListener(S_GAME_ANNOUNCMENT, OnAnouncmentMade, OSCUtil.STRING);
-        Client.Instance.AddListener(S_ROUND_RESULTS, OnResultsPublished, OSCUtil.STRING);
-        Client.Instance.AddListener(S_STAKE_ROLL_PROMPT, OnStakePrompt, OSCUtil.BOOL, OSCUtil.STRING);
     }
 
     private void OnDestroy()
     {
         UnsubscribeEvents();
-        if (Client.Instance != null) 
-        {
-            Client.Instance.RemoveListener(S_DISCONECT, OnDisconnectedReplie);
-            Client.Instance.RemoveListener(S_YOUR_TURN, OnYourTurn);
-            Client.Instance.RemoveListener(S_DICE_ROLLED, OnDiceRolled);
-            Client.Instance.RemoveListener(S_GAME_STATE, OnGameState);
-            Client.Instance.RemoveListener(S_DICE_SELECTED, OnGameState);
-            Client.Instance.RemoveListener(S_GAME_ANNOUNCMENT, OnAnouncmentMade);
-            Client.Instance.RemoveListener(S_ROUND_RESULTS, OnResultsPublished);
-            Client.Instance.RemoveListener(S_STAKE_ROLL_PROMPT, OnStakePrompt);
-        }
+        UnsubscribeOSC();
     }
 
+
     #region Setup
-    private bool CheckReferences()
+    private bool ValidateReferences()
     {
         if (view == null) view = GetComponent<GameView>();
         if (confirmChoice == null) confirmChoice = FindFirstObjectByType<ConfirmChoiceView>();
         if (rollAgainView == null) rollAgainView = FindFirstObjectByType<RollAgainView>();
         if (roundResultsView == null) roundResultsView = FindFirstObjectByType<RoundResultsView>();
-        if (anouncmentsView == null) anouncmentsView = FindFirstObjectByType<AnouncmentsView>();
+        if (announcementsView == null) announcementsView = FindFirstObjectByType<AnnouncementsView>();
 
-        if (view == null) { Debug.LogError("GameView missing"); return false; }
-        if (confirmChoice == null) { Debug.LogError("ConfirmChoiceView missing"); return false; }
-        if (rollAgainView == null) { Debug.LogError("RollAgainView missing"); return false; }
-        if (roundResultsView == null) { Debug.LogError("RoundResultsView missing"); return false; }
-        if (anouncmentsView == null) { Debug.LogError("AnouncmentsView missing"); return false; }
-        return true;
+        bool ok = true;
+        if (view == null) { Debug.LogError("GameView missing"); ok = false; }
+        if (confirmChoice == null) { Debug.LogError("ConfirmChoiceView missing"); ok = false; }
+        if (rollAgainView == null) { Debug.LogError("RollAgainView missing"); ok = false; }
+        if (roundResultsView == null) { Debug.LogError("RoundResultsView missing"); ok = false; }
+        if (announcementsView == null) { Debug.LogError("AnnouncementsView missing"); ok = false; }
+        return ok;
     }
 
     private void SubscribeEvents()
     {
-        selectedDiceTypeBinding = new EventBinding<SelectedDiceType>(OnSelectDice);
-        EventBus<SelectedDiceType>.Subscribe(selectedDiceTypeBinding);
-        stakeRollBinding = new EventBinding<StakeRoll>(OnStakeReroll);
-        EventBus<StakeRoll>.Subscribe(stakeRollBinding);
+        _selectedDiceBinding = new EventBinding<SelectedDiceType>(OnSelectedDice);
+        EventBus<SelectedDiceType>.Subscribe(_selectedDiceBinding);
+
+        _stakeRollBinding = new EventBinding<StakeRoll>(OnStakeChoice);
+        EventBus<StakeRoll>.Subscribe(_stakeRollBinding);
     }
 
     private void UnsubscribeEvents()
     {
-        EventBus<SelectedDiceType>.Unsubscribe(selectedDiceTypeBinding);
-        EventBus<StakeRoll>.Unsubscribe(stakeRollBinding);
+        EventBus<SelectedDiceType>.Unsubscribe(_selectedDiceBinding);
+        EventBus<StakeRoll>.Unsubscribe(_stakeRollBinding);
     }
 
     private void SubscribeOSC()
     {
-        // Already added in Start, but ensure disconnect button works
-        view.DisconnectButton.onClick.AddListener(() => Client.Instance.Disconnect());
+        var client = Client.Instance;
+        if (client == null) return;
+
+        client.AddListener(Msg.S_YOUR_TURN, OnYourTurn, OSCUtil.STRING);
+        client.AddListener(Msg.S_DICE_ROLLED, OnDiceRolled);
+        client.AddListener(Msg.S_GAME_STATE, OnGameState);
+        client.AddListener(Msg.S_GAME_ANNOUNCEMENT, OnAnnouncement, OSCUtil.STRING);
+        client.AddListener(Msg.S_ROUND_RESULTS, OnRoundResults, OSCUtil.STRING);
+        client.AddListener(Msg.S_STAKE_PROMPT, OnStakePrompt, OSCUtil.BOOL, OSCUtil.STRING);
+        client.AddListener(Msg.S_GAME_END, OnGameEnd, OSCUtil.STRING);
+
+        view.disconnectButton.onClick.AddListener(() => client.Disconnect());
+    }
+
+    private void UnsubscribeOSC()
+    {
+        var client = Client.Instance;
+        if (client == null) return;
+
+        client.RemoveListener(Msg.S_YOUR_TURN, OnYourTurn);
+        client.RemoveListener(Msg.S_DICE_ROLLED, OnDiceRolled);
+        client.RemoveListener(Msg.S_GAME_STATE, OnGameState);
+        client.RemoveListener(Msg.S_GAME_ANNOUNCEMENT, OnAnnouncement);
+        client.RemoveListener(Msg.S_ROUND_RESULTS, OnRoundResults);
+        client.RemoveListener(Msg.S_STAKE_PROMPT, OnStakePrompt);
+        client.RemoveListener(Msg.S_GAME_END, OnGameEnd);
+
+        view.disconnectButton.onClick.RemoveListener(() => client.Disconnect());
     }
     #endregion
 
     #region OSC Handlers
-    void OnDiceRolled(OSCMessageIn msg, IPEndPoint sender)
+
+    private void OnYourTurn(OSCMessageIn msg, IPEndPoint sender)
     {
+        string message = msg.ReadString();
+        announcementsView.ShowAnnouncement(message);
+        _isMyTurn = message.Contains("your turn") || message.Contains(Client.Instance.Username);
+        view.SetTurnIndicator(_isMyTurn);
+        if (_isMyTurn)
+            view.EnableDiceSelection(true);
+    }
+    private void OnDiceRolled(OSCMessageIn msg, IPEndPoint sender)
+    {
+
+        //TODO: if Count is -1 Means selection failed and we need to select a dice again. Show msg select new dice.
         int count = msg.ReadInt();
         List<int> dice = new List<int>();
-        for (int i = 0; i < count; i++) dice.Add(msg.ReadInt());
-        view.DisplayDice(dice);
-        view.EnableDiceSelection(isYourTurn);
+        for (int i = 0; i < count; i++)
+            dice.Add(msg.ReadInt());
+
+        view.GenerateRollingZoneDice(dice);
+        view.EnableDiceSelection(_isMyTurn);
     }
 
-    void OnResultsPublished(OSCMessageIn msg, IPEndPoint sender)
+    private void OnRoundResults(OSCMessageIn msg, IPEndPoint sender)
     {
         string result = msg.ReadString();
-        Client.Log(result);
         EventBus<RoundResults>.Publish(new RoundResults(result));
     }
-
-    void OnAnouncmentMade(OSCMessageIn msg, IPEndPoint sender)
+    private void OnAnnouncement(OSCMessageIn msg, IPEndPoint sender)
     {
-        string announcement = msg.ReadString();
-        anouncmentsView.ShowAnnouncement(announcement);
+        string text = msg.ReadString();
+        announcementsView.ShowAnnouncement(text);
     }
 
-    // Add these new handlers (keep in same region)
-    void OnYourTurn(OSCMessageIn msg, IPEndPoint sender)
-    {
-        string turnText = msg.ReadString();
-        anouncmentsView.ShowAnnouncement(turnText);
-        isYourTurn = turnText.Contains("your turn");
-        view.SetTurnIndicator(isYourTurn);
-        if (isYourTurn) view.EnableDiceSelection(true);
-    }
-
-    void OnGameState(OSCMessageIn msg, IPEndPoint sender)
+    private void OnGameState(OSCMessageIn msg, IPEndPoint sender)
     {
         int currentTurnIndex = msg.ReadInt();
         int playerCount = msg.ReadInt();
         view.ClearUsers();
+
+        string myName = Client.Instance.Username;
         for (int i = 0; i < playerCount; i++)
         {
             string name = msg.ReadString();
             int points = msg.ReadInt();
             view.UpdateOrAddUser(name, points);
-            if (name == Client.Instance.Username) isYourTurn = (i == currentTurnIndex);
+            if (name == myName)
+                _isMyTurn = (i == currentTurnIndex);
         }
-        view.SetTurnIndicator(isYourTurn);
+        view.SetTurnIndicator(_isMyTurn);
+
+        //TODO: View.RolledDice(int[] dice);-> Moves Tanks to Defene Line,
+        // TODO: IF selected UFOS or dice add them to the Defense or Point bar.
     }
 
-    void OnStakePrompt(OSCMessageIn msg, IPEndPoint sender)
+    private void OnStakePrompt(OSCMessageIn msg, IPEndPoint sender)
     {
         bool canStake = msg.ReadBool();
         string optionalMsg = msg.ReadString();
         rollAgainView.Show(canStake, optionalMsg);
     }
+
+    private void OnGameEnd(OSCMessageIn msg, IPEndPoint sender)
+    {
+        string winnerMsg = msg.ReadString();
+        announcementsView.ShowAnnouncement(winnerMsg);
+        // Optionally go back to lobby after a delay
+        Invoke(nameof(ReturnToLobby), 3f);
+    }
+    private void ReturnToLobby()
+    {
+        SceneManager.LoadScene(Scenes.Lobby);
+    }
     #endregion
 
-    #region UI Event Handlers
-    void OnSelectDice(SelectedDiceType e)
+    #region UI Event Handlers (via EventBus)
+    private void OnSelectedDice(SelectedDiceType e)
     {
-        if (!isYourTurn) return;
-        var msg = new OSCMessageOut("/select_die");
-        msg.AddInt(e.diceType);
+        if (!_isMyTurn) return;
+        var msg = new OSCMessageOut(Msg.C_SELECT_DICE).AddInt(e.diceType);
         Client.Instance.Send(msg);
-        view.EnableDiceSelection(false);
+        view.EnableDiceSelection(false); // disable until server responds
     }
 
-    void OnStakeReroll(StakeRoll e)
+    private void OnStakeChoice(StakeRoll e)
     {
-        if (!isYourTurn) return;
-        var msg = new OSCMessageOut("/stake_roll");
-        msg.AddBool(e.doReRoll);
+        if (!_isMyTurn) return;
+        var msg = new OSCMessageOut(Msg.C_STAKE_ANSWER).AddBool(e.doReRoll);
         Client.Instance.Send(msg);
         rollAgainView.Hide();
     }
     #endregion
-
-    private void OnDisconnectedReplie(OSCMessageIn msg, IPEndPoint sender)
-    {
-        Client.Log("Player gave up: " + msg.ReadString());
-        SceneManager.LoadScene("0_SC_MainMenu");
-    }
 }

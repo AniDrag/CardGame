@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CreeperDies_Net_Proj.Model
+namespace CreeperDice_Net_Proj.Model
 {
     [Serializable]
     public class RoomData
@@ -29,7 +29,7 @@ namespace CreeperDies_Net_Proj.Model
 
         public bool AddParticipant(Participant pParticipant)
         {
-            if (Participants.Contains(pParticipant)) return false;d
+            if (Participants.Contains(pParticipant)) return false;
             if (Participants.Count >= 4) return false;
             Participants.Add(pParticipant);
             return true;

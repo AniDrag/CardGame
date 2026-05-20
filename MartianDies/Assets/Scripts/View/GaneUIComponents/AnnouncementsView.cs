@@ -2,7 +2,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class AnouncmentsView : MonoBehaviour
+public class AnnouncementsView : MonoBehaviour
 {
     [SerializeField] private TMP_Text anouncmentText;
     [SerializeField] private Button closeButton;
