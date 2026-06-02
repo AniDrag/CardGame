@@ -11,12 +11,10 @@ public class CreateRoomView : MonoBehaviour
     [SerializeField] private Slider ptSlider;
     [SerializeField] private Button createRoom;
 
-    public Action<bool> AddListener;
     private void OnEnable()
     {
         createRoom.onClick.AddListener(CreateRoom);
         ptSlider.onValueChanged.AddListener(UpdatePtText);
-        AddListener?.Invoke(true);
 
     }
 
@@ -25,12 +23,16 @@ public class CreateRoomView : MonoBehaviour
         // Clean up listener to avoid memory leaks
         ptSlider.onValueChanged.RemoveListener(UpdatePtText);
         createRoom.onClick.RemoveListener(CreateRoom);
-        AddListener?.Invoke(false);
     }
 
     // Slider value is float, not int
     private void UpdatePtText(float val) => pointsCounter.text = $"PT: {Mathf.RoundToInt(val)}";
     private void CreateRoom() => EventBus<CreateRoom>.Publish(new CreateRoom(nameInput.text, (int)ptSlider.value));
+
+    public void EnableView(bool enabled)
+    {
+        this.gameObject.SetActive(enabled);
+    }
 
 
 }

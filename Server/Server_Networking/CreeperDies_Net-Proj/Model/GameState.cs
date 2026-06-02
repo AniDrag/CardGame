@@ -84,7 +84,6 @@ namespace CreeperDice_Net_Proj.Model
             {
                 _server.AddMaliciousStrike(client);
                 _server.SendError(client.Connection, "Invalid dice type, malicious action taken");
-                // TODO: "reselect" message to client (you need a new OSC message for that)
                 return;
             }
 

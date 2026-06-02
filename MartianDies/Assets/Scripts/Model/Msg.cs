@@ -28,6 +28,7 @@ public static class Msg
     public const string S_GAME_STARTED = "/s_game_started";             // -                                         | -                                                                     | RoomY (room broadcast)
     public const string S_CREATED_ROOM = "/s_created_room";             // -                                         | -                                                                     | N (private)
     public const string S_JOINED = "/s_joined";                         // -                                         | -                                                                     | N (private)
+    public const string S_CLOSED_ROOM = "/s_closed_room";                         // -                                         | -                                                                     | N (private)
 
 
     // Game

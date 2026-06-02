@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using static UnityEngine.EventSystems.EventTrigger;
 
 public class LobbyView : MonoBehaviour
 {
@@ -58,6 +57,7 @@ public class LobbyView : MonoBehaviour
     }
     public void CreateRoomEntry(RoomDataModel data)
     {
+        // On destroy i
         GameObject go = Instantiate(prf_roomEntry, content);
         var entry = go.GetComponent<RoomEntryView>();
         entry.Initialize(data);
@@ -89,10 +89,7 @@ public class LobbyView : MonoBehaviour
             }
         }
     }
-    public void UpdateRoomVisuals(string roomName)
-    {
-       // roomEntries[roomName].Initialize();
-    }
+    
     public void UpdateRoomEntry(RoomDataModel room)
     {
         if (roomEntries.TryGetValue(room.roomName, out var entry))

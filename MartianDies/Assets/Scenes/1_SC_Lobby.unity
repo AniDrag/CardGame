@@ -1134,7 +1134,7 @@ MonoBehaviour:
   refreshRoomsButton: {fileID: 1842100803}
   disconnectBtn: {fileID: 1142255536}
   content: {fileID: 1952342725}
-  prf_roomEntry: {fileID: 365572769775017914}
+  prf_roomEntry: {fileID: 2899785121206405426, guid: d8cfe7472338c4349977d8be00f2c76d, type: 3}
   Panel_CreateRoom: {fileID: 4062203688516882398}
   Panel_WaitingForHost: {fileID: 1345957548}
   Panel_HostRoom: {fileID: 8698099830450027109}
@@ -2496,11 +2496,6 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: d8cfe7472338c4349977d8be00f2c76d, type: 3}
---- !u!1 &365572769775017914 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 2899785121206405426, guid: d8cfe7472338c4349977d8be00f2c76d, type: 3}
-  m_PrefabInstance: {fileID: 365572769775017913}
-  m_PrefabAsset: {fileID: 0}
 --- !u!224 &2184683230042580833 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 2975350193248436411, guid: d8cfe7472338c4349977d8be00f2c76d, type: 3}

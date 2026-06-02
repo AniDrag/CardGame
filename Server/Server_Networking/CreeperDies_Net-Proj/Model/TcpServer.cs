@@ -111,12 +111,6 @@ namespace CreeperDice_Net_Proj
         }
         private void OnDisconnect(OSCMessageIn msg, IPEndPoint sender)
         {
-            var conn = GetConnectionByEndpoint(sender);
-            if (conn == null) return;
-
-            var reply = new OSCMessageOut(Msg.S_DISCONNECT);
-            Send(conn, reply);
-
             var client = GetClientByEndpoint(sender);
             if (client != null) RemoveClient(client);
         }
@@ -377,11 +371,33 @@ namespace CreeperDice_Net_Proj
                 if (_rooms.ContainsKey(roomName)) return false;
                 var host = FindPlayerById(hostId);
                 if (host == null) return false;
+
+                // Create room
                 var room = new RoomData(roomName.GetHashCode(), roomName, host.Name, pointGoal);
                 room.Participants.Add(new Participant(host.Id, host.Name, 0));
                 _rooms[roomName] = room;
                 host.CurrentRoom = roomName;
+
                 Console.WriteLine($"Console created room '{roomName}' with goal {pointGoal}, host {host.Name}");
+
+                // Broadcast to all clients that a new room was created
+                var confirmMsg = new OSCMessageOut(Msg.S_CREATED_ROOM)
+                    .AddString(roomName)
+                    .AddInt(room.Participants.Count)    // 1
+                    .AddString(host.Name)
+                    .AddInt(pointGoal)
+                    .AddBool(false);
+                BroadcastToAll(confirmMsg);
+
+                // Optionally, send a private S_JOINED to the host so the client shows the waiting/host view
+                var joinedMsg = new OSCMessageOut(Msg.S_JOINED)
+                    .AddString(roomName)
+                    .AddInt(room.Participants.Count)
+                    .AddString(host.Name)
+                    .AddInt(pointGoal)
+                    .AddBool(false);
+                Send(host.Connection, joinedMsg);
+
                 return true;
             }
         }
@@ -391,13 +407,20 @@ namespace CreeperDice_Net_Proj
             lock (_sync)
             {
                 if (!_rooms.TryGetValue(roomName, out var room)) return false;
+
+                // Clear CurrentRoom from all participants
                 foreach (var p in room.Participants.ToList())
                 {
                     if (_clients.TryGetValue(p.id, out var client))
                         client.CurrentRoom = null;
                 }
+
+                // Broadcast room closed to all clients
+                var closeMsg = new OSCMessageOut(Msg.S_CLOSED_ROOM).AddString(roomName);
+                BroadcastToAll(closeMsg);
+
                 _rooms.Remove(roomName);
-                Console.WriteLine($"Room '{roomName}' closed.");
+                Console.WriteLine($"Room '{roomName}' closed via console.");
                 return true;
             }
         }
@@ -411,11 +434,20 @@ namespace CreeperDice_Net_Proj
 
                 room.GameStarted = true;
 
-                // Tell all clients in the room to load the game scene
+                // 1. Tell all clients in the room to load the game scene
                 var gameStartedMsg = new OSCMessageOut(Msg.S_GAME_STARTED);
                 BroadcastToRoom(room, gameStartedMsg);
 
-                // Initialize game data and start the first turn
+                // 2. Broadcast room update to ALL clients (so room disappears from lobby list)
+                var updateMsg = new OSCMessageOut(Msg.S_ROOM_UPDATE)
+                    .AddString(roomName)
+                    .AddInt(room.Participants.Count)
+                    .AddString(room.host)
+                    .AddInt(room.pointGoal)
+                    .AddBool(true);  // gameStarted = true
+                BroadcastToAll(updateMsg);
+
+                // 3. Initialize game state (first turn, dice, etc.)
                 game.StartGameForRoom(room);
 
                 Console.WriteLine($"Room '{roomName}' started via console.");
@@ -430,6 +462,17 @@ namespace CreeperDice_Net_Proj
                 if (_rooms.TryGetValue(roomName, out var room))
                 {
                     var msg = new OSCMessageOut(Msg.S_SERVER_MESSAGE).AddString($"Broadcast to room '{roomName}': {message}");
+                    BroadcastToRoom(room, msg);
+                }
+            }
+        }
+        public void BroadcastToRoom(string roomName, OSCMessageOut msg)
+        {
+            lock (_sync)
+            {
+                if (_rooms.TryGetValue(roomName, out var room))
+                {
+                    Console.WriteLine($"{roomName} {msg}");
                     BroadcastToRoom(room, msg);
                 }
             }
@@ -477,7 +520,8 @@ namespace CreeperDice_Net_Proj
         {
             lock (_sync)
             {
-                _clients[id] = client; _connectionToId[client.Connection] = id;
+                _clients[id] = client; 
+                _connectionToId[client.Connection] = id;
             }
         }
         public void UpdateClientRoom(ClientInfo client, string roomName)

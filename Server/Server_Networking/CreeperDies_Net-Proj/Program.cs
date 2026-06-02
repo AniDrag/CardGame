@@ -15,7 +15,7 @@ class Program
         while (true)
         {
             server.Update();
-            Thread.Sleep(15);
+            Thread.Sleep(40);
         }
     }
 }

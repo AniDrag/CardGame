@@ -19,24 +19,18 @@ public class HostRoomView : MonoBehaviour
 
     private void OnEnable()
     {
-        if (startGame == null)
-        {
-            Client.Log($"Null Reference: Button [ startGame ] not found on: {this.gameObject.name}");
-            return;
-        }
-        if (closeRoom == null)
-        {
-            Client.Log($"Null Reference: Button [ closeRoom ] not found on: {this.gameObject.name}");
-            return;
-        }
-        startGame.onClick.AddListener(() => EventBus<StartGame>.Publish(new StartGame()));
-        closeRoom.onClick.AddListener(() => EventBus<CloseHostedRoom>.Publish(new CloseHostedRoom()));
+        if (startGame == null) { Debug.LogError("startGame button is NULL!"); return; }
+        if (closeRoom == null) { Debug.LogError("closeRoom button is NULL!"); return; }
+
+        startGame.onClick.AddListener(() => { Debug.Log("Start Game button clicked"); EventBus<StartGame>.Publish(new StartGame()); });
+        closeRoom.onClick.AddListener(() => { Debug.Log("Close Room button clicked"); EventBus<CloseHostedRoom>.Publish(new CloseHostedRoom()); });
+
         updateRoomParticipantsBinding = new EventBinding<UpdateRoomParticipants>(UpdateParticipantsInRoom);
         EventBus<UpdateRoomParticipants>.Subscribe(updateRoomParticipantsBinding);
         roomCreatedBinding = new EventBinding<RoomCreated>(OnCreate);
         EventBus<RoomCreated>.Subscribe(roomCreatedBinding);
 
-        
+
     }
 
 

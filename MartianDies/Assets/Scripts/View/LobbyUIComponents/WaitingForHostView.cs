@@ -32,7 +32,10 @@ public class WaitingForHostView : MonoBehaviour
         data = e.data;
         UpdateDisplay();
     }
-
+    public void SetRoomData(RoomDataModel roomData)
+    {
+        data = roomData;
+    }
     public void UpdateParticipantsInRoom(UpdateRoomParticipants e)
     {
         data.participantCount = e.participants;

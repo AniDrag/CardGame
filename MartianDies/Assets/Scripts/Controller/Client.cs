@@ -16,6 +16,7 @@ public class Client : MonoBehaviour
     public string ServerIP = "127.0.0.1";
     public int ServerPort = 55000;
     public string Username;
+    public string CurrentRoom;
 
     private TcpNetworkConnection connection;
     private OSCDispatcher dispatcher;
@@ -40,6 +41,7 @@ public class Client : MonoBehaviour
         Application.quitting += () => Disconnect();
         AddListener(Msg.S_SHUTDOWN, OnShutdown, OSCUtil.STRING);
         AddListener(Msg.S_SERVER_MESSAGE, OnServerMessage, OSCUtil.STRING);
+        AddListener(Msg.S_DISCONNECT, OnShutdown, OSCUtil.STRING);
     }
 
     private void Update()
@@ -88,6 +90,14 @@ public class Client : MonoBehaviour
 
             dispatcher = new OSCDispatcher();
             dispatcher.ShowIncomingMessages = true;
+
+            // Process any listeners that were queued before connection was ready
+            foreach (var action in pendingListeners)
+            {
+                action?.Invoke();
+            }
+            pendingListeners.Clear();
+
             IsConnected = true;
             isConnecting = false;
 
@@ -117,41 +127,32 @@ public class Client : MonoBehaviour
     {
         if (data == null) return;
 
-        // Log raw packet (same as before)
-        Debug.Log($"[{DateTime.Now:HH:mm}] Debug | Raw packet: {data.Length} bytes");
-
-        if (OSCObject.IsBundle(data))
+        try
         {
-            OSCBundleIn bundle = new OSCBundleIn(data, null);
-            if (!bundle.corrupt)
-                Log("Server", bundle.ToString());
-        }
-        else
-        {
-            OSCMessageIn msg = new OSCMessageIn(data);
-            if (!msg.corrupt)
+            if (OSCObject.IsBundle(data))
             {
-                Log("Server", msg.ToString());
-                msg.ResetRead();
-                while (msg.NextType() != 0)
-                {
-                    char t = msg.NextType();
-                    if (t == OSCObject.INT)
-                        Log("Debug", $"  int: {msg.ReadInt()}");
-                    else if (t == OSCObject.STRING)
-                        Log("Debug", $"  string: {msg.ReadString()}");
-                    else
-                        msg.ReadInt();
-                }
-                msg.ResetRead();
+                OSCBundleIn bundle = new OSCBundleIn(data, null);
+                if (!bundle.corrupt)
+                    Log("Server", bundle.ToString());
             }
             else
             {
-                Log("Debug", "Message corrupt");
+                OSCMessageIn msg = new OSCMessageIn(data);
+                if (!msg.corrupt)
+                {
+                    Log("Server", msg.ToString());
+                    dispatcher?.HandlePacket(data, null);
+                }
+                else
+                {
+                    Log("Debug", "Corrupt message, skipping.");
+                }
             }
         }
-
-        dispatcher?.HandlePacket(data, null);
+        catch (Exception e)
+        {
+            Log("Error", $"Exception in ProcessPacket: {e.Message}\n{e.StackTrace}");
+        }
     }
 
     public void Send(OSCMessageOut msg)
@@ -206,6 +207,7 @@ public class Client : MonoBehaviour
         CleanupConnection();
         IsConnected = false;
         isConnecting = false;
+        CurrentRoom = null;
         Log("System", $"Disconnected: {reason}");
         OnDisconnected?.Invoke(reason);
     }
