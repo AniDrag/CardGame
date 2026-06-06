@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("CreeperDies_Net-Proj")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+530d2d66688e806e038203c477c1acb0af88b884")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d65e3e95e1b929c3524f4bd282b7189643587b3d")]
 [assembly: System.Reflection.AssemblyProductAttribute("CreeperDies_Net-Proj")]
 [assembly: System.Reflection.AssemblyTitleAttribute("CreeperDies_Net-Proj")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
