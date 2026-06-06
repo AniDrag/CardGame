@@ -37,11 +37,19 @@ public class MainMenuController : MonoBehaviour
         if (string.IsNullOrEmpty(username))
         {
             Client.Log("Connection attempt failed: empty username.");
+            EventBus<IncorrectUsername>.Publish(new IncorrectUsername("Empty username."));
+            return;
+        }
+        else if (username.Length > 13)
+        {
+            Client.Log("Connection attempt failed: username too long.");
+            EventBus<IncorrectUsername>.Publish(new IncorrectUsername("Username too long."));
             return;
         }
         if (string.IsNullOrEmpty(ip))
         {
             Client.Log("Connection attempt failed: empty IP.");
+            EventBus<IncorrectIP>.Publish(new IncorrectIP("Empty IP."));
             return;
         }
 

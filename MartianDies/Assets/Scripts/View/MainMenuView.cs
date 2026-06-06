@@ -1,4 +1,5 @@
 using AniDrag.EventBus;
+using System.Collections;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -9,6 +10,12 @@ public class MainMenuView : MonoBehaviour
     [SerializeField] public TMP_InputField serverIpInput;
     [SerializeField] public Button connectButton;
     [SerializeField] public Button resetIpAdres;
+
+    EventBinding<IncorrectIP> incorectIpBinding;
+    EventBinding<IncorrectUsername> emptyUsernameBinding;
+
+    private string originalUsernameText;
+    private string originalIpUsedText;
 
     void Start()
     {
@@ -28,22 +35,83 @@ public class MainMenuView : MonoBehaviour
 
         if (serverIpInput != null)
             serverIpInput.text = "127.0.0.1";
+
+        incorectIpBinding = new EventBinding<IncorrectIP>(IncorectIp);
+        emptyUsernameBinding = new EventBinding<IncorrectUsername>(IncorectUsername);
+        EventBus<IncorrectIP>.Subscribe(incorectIpBinding);
+        EventBus<IncorrectUsername>.Subscribe(emptyUsernameBinding);
     }
 
-    public string GetUsername() => usernameInput?.text.Trim();
-    public string GetServerIp() => serverIpInput?.text.Trim();
-    void ResetIP() => serverIpInput.text = "127.0.0.1";
+    public string GetUsername() => usernameInput != null ? usernameInput.text.Trim() : "";
+    public string GetServerIp() => serverIpInput != null ? serverIpInput.text.Trim() : "";
+
+    void ResetIP()
+    {
+        if (serverIpInput != null)
+            serverIpInput.text = "127.0.0.1";
+    }
 
     public void SetButtonsInteractable(bool interactable)
     {
-        connectButton.interactable = interactable;
-        usernameInput.interactable = interactable;
-        serverIpInput.interactable = interactable;
+        if (connectButton != null)
+            connectButton.interactable = interactable;
+        if (usernameInput != null)
+            usernameInput.interactable = interactable;
+        if (serverIpInput != null)              
+            serverIpInput.interactable = interactable;
+        if (resetIpAdres != null)                
+            resetIpAdres.interactable = interactable;
     }
 
     private void OnDestroy()
     {
-        connectButton.onClick.RemoveAllListeners();
-        resetIpAdres.onClick.RemoveAllListeners();
+        if (connectButton != null)
+            connectButton.onClick.RemoveAllListeners();
+        if (resetIpAdres != null)
+            resetIpAdres.onClick.RemoveAllListeners();
+        EventBus<IncorrectIP>.Unsubscribe(incorectIpBinding);
+        EventBus<IncorrectUsername>.Unsubscribe(emptyUsernameBinding);
+    }
+
+    private void IncorectUsername(IncorrectUsername e)
+    {
+        if (usernameInput == null) return;
+        originalUsernameText = usernameInput.text;
+        usernameInput.text = e.errorMsg;
+        DelayedUsernameRestore();
+    }
+
+    private void DelayedUsernameRestore()
+    {
+        StopCoroutine(RestoreUsernameAfterDelay());
+        StartCoroutine(RestoreUsernameAfterDelay());
+    }
+
+    private IEnumerator RestoreUsernameAfterDelay()
+    {
+        yield return new WaitForSeconds(2f);
+        if (usernameInput != null)
+            usernameInput.text = originalUsernameText;
+    }
+
+    public void IncorectIp(IncorrectIP e)  
+    {
+        if (serverIpInput == null) return;
+        originalIpUsedText = serverIpInput.text;
+        serverIpInput.text = e.errorMsg;   
+        DelayedIPAdressRestore();
+    }
+
+    private void DelayedIPAdressRestore()
+    {
+        StopCoroutine(RestoreIPAdressAfterDelay());
+        StartCoroutine(RestoreIPAdressAfterDelay());
+    }
+
+    private IEnumerator RestoreIPAdressAfterDelay()
+    {
+        yield return new WaitForSeconds(2f);
+        if (serverIpInput != null) 
+            serverIpInput.text = originalIpUsedText;
     }
 }
