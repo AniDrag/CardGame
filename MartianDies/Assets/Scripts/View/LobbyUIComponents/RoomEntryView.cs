@@ -8,51 +8,62 @@ public class RoomEntryView : MonoBehaviour
 {
     [SerializeField] private TMP_Text roomDetails;
     [SerializeField] private TMP_Text participants;
-    [SerializeField] private Button joinBtn;
+    [SerializeField] private Button joinRoomButton;
     private RoomDataModel data;
 
-    EventBinding<EnableButtons> disableButtonsBainding;
+    private EventBinding<EnableButtons> disableButtonsBinding;
+
+    // Use a named method instead of a lambda – so RemoveListener works
+    private void OnJoinButtonClicked()
+    {
+        EventBus<JoinRoom>.Publish(new JoinRoom(data));
+    }
 
     private void OnEnable()
     {
-        Sub();
-    }
-    private void OnDestroy()
-    {
-        UnSub();
+        // Subscribe to event bus only once
+        if (disableButtonsBinding == null)
+        {
+            disableButtonsBinding = new EventBinding<EnableButtons>(DisableButtons);
+            EventBus<EnableButtons>.Subscribe(disableButtonsBinding);
+        }
+
+        // Add button listener (using named method)
+        joinRoomButton.onClick.AddListener(OnJoinButtonClicked);
     }
 
     private void OnDisable()
     {
-        UnSub();
+        // Remove button listener (works because it's the same method)
+        joinRoomButton.onClick.RemoveListener(OnJoinButtonClicked);
     }
 
-    void Sub()
+    private void OnDestroy()
     {
-        joinBtn.onClick.AddListener(() => EventBus<JoinRoom>.Publish(new JoinRoom(data)));
-        disableButtonsBainding = new EventBinding<EnableButtons>(DisableButtons);
-        EventBus<EnableButtons>.Subscribe(disableButtonsBainding);
-    }
-    void UnSub()
-    {
-        joinBtn.onClick.RemoveListener(() => EventBus<JoinRoom>.Publish(new JoinRoom(data)));
-        EventBus<EnableButtons>.Unsubscribe(disableButtonsBainding);
+        // Unsubscribe from event bus
+        if (disableButtonsBinding != null)
+        {
+            EventBus<EnableButtons>.Unsubscribe(disableButtonsBinding);
+            disableButtonsBinding = null;
+        }
     }
 
-    void DisableButtons(EnableButtons e)
+    private void DisableButtons(EnableButtons e)
     {
-        joinBtn.interactable = e.isEnabled;
+        if (joinRoomButton != null)
+            joinRoomButton.interactable = e.isEnabled;
     }
+
     public void Initialize(RoomDataModel pData)
     {
         data = pData;
-        Sub();
+        
         roomDetails.text = $"{data.roomName}    Goal: {data.pointGoal}pt";
         UpdateParticipants(data.participantCount);
     }
+
     public void UpdateParticipants(int count)
     {
         participants.text = $"{count} / 4";
     }
-    
 }

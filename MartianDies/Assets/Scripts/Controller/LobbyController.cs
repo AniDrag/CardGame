@@ -174,17 +174,17 @@ public class LobbyController : MonoBehaviour
     }
 
     private void Disconect(Disconnect e) => Client.Instance.Disconnect();
-    private void StartGame()
+    private void StartGame(StartGame e)
     {
         Debug.Log("LobbyController.StartGame() called – sending C_START_GAME");
         Client.Instance.Send(new OSCMessageOut(Msg.C_START_GAME));
     }
-    private void CloseRoom()
+    private void CloseRoom(CloseHostedRoom e)
     {
         Debug.Log("LobbyController.CloseRoom() called – sending C_CLOSE_ROOM");
         Client.Instance.Send(new OSCMessageOut(Msg.C_CLOSE_ROOM));
     }
-    private void LeaveRoom()
+    private void LeaveRoom(LeaveRoom e)
     {
         Debug.Log("LobbyController.CloseRoom() called – sending C_LEAVE_ROOM");
         Client.Instance.Send(new OSCMessageOut(Msg.C_LEAVE_ROOM));
@@ -246,6 +246,7 @@ public class LobbyController : MonoBehaviour
     {
         Debug.LogWarning("[On room Created] Triggered");
         Client.Instance.CancelTimeout(Msg.CREATE_ROOM_TIMEOUT);
+        pendingRoomCreation = false;
 
         string roomName = msg.ReadString();
         int participantCount = msg.ReadInt();
@@ -277,7 +278,7 @@ public class LobbyController : MonoBehaviour
     private void OnRoomJoined(OSCMessageIn msg, IPEndPoint sender)
     {
         Client.Instance.CancelTimeout(Msg.JOIN_ROOM_TIMEOUT);
-
+        pendingRoomCreation = false;
         string roomName = msg.ReadString();
         int participantCount = msg.ReadInt();   // current participants
         string hostName = msg.ReadString();
@@ -370,6 +371,7 @@ public class LobbyController : MonoBehaviour
             view.Panel_WaitingForHost.SetActive(false);
             view.Panel_CreateRoom.SetActive(false);
             EventBus<EnableButtons>.Publish(new EnableButtons(true));
+            pendingRoomCreation = false;
             Client.Instance.Send(new OSCMessageOut(Msg.C_LIST_ROOMS));
         }
     }

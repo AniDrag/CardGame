@@ -3,6 +3,20 @@ using AniDrag.EventBus;
 
 public struct Connect : IEvBusEvent { }
 public struct Disconnect : IEvBusEvent { }
+
+#region Main Menu Events
+public struct IncorrectUsername : IEvBusEvent 
+{
+    public string errorMsg;
+    public IncorrectUsername(string pErrorMsg) => errorMsg = pErrorMsg;
+}
+public struct IncorrectIP : IEvBusEvent 
+{
+    public string errorMsg;
+    public IncorrectIP(string pErrorMsg) => errorMsg = pErrorMsg;
+}
+#endregion
+
 #region Lobby Events
 public struct EnableButtons : IEvBusEvent
 {
@@ -58,8 +72,6 @@ public struct StartGame : IEvBusEvent { }
 public struct CloseHostedRoom : IEvBusEvent { }
 #endregion
 #endregion
-
-// Only for Hosting room or when waiting room
 
 #region Game Events
 
