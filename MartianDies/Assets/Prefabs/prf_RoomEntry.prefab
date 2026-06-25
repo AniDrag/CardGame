@@ -93,7 +93,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RoomEntryView
   roomDetails: {fileID: 1383912072575728146}
   participants: {fileID: 4348895368421004419}
-  joinBtn: {fileID: 798453359164925363}
+  joinRoomButton: {fileID: 798453359164925363}
 --- !u!1 &6324005812762473799
 GameObject:
   m_ObjectHideFlags: 0
