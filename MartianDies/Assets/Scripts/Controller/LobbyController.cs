@@ -1,4 +1,5 @@
 using AniDrag.EventBus;
+using AniDrag.Utility;
 using OSCTools;
 using System.Collections.Generic;
 using System.Linq;
@@ -376,4 +377,52 @@ public class LobbyController : MonoBehaviour
         }
     }
     #endregion
+
+    #region Debug Testing 
+    [Button]
+    void Debug_StartGame(int addInt = -1, float addFloat = -1, string addString ="", bool addBool = false, bool sentBool =false)
+    {
+        var msg = new OSCMessageOut(Msg.C_START_GAME);
+        if(addString != string.Empty)
+            msg.AddString(addString);
+        if(addInt != -1)
+            msg.AddInt(addInt);
+        if(addFloat != -1)
+            msg.AddFloat(addFloat);
+        if(addBool)
+            msg.AddBool(sentBool);
+        
+        Client.Instance.Send(msg);
+    }
+    [Button]
+    void Debug_LeaveRoom(int addInt = -1, float addFloat = -1, string addString = "", bool addBool = false, bool sentBool = false)
+    {
+        var msg = new OSCMessageOut(Msg.C_LEAVE_ROOM);
+        if (addString != string.Empty)
+            msg.AddString(addString);
+        if (addInt != -1)
+            msg.AddInt(addInt);
+        if (addFloat != -1)
+            msg.AddFloat(addFloat);
+        if (addBool)
+            msg.AddBool(sentBool);
+
+        Client.Instance.Send(msg);
+    }
+    [Button]
+    void Debug_CloseRoom(int addInt = -1, float addFloat = -1, string addString = "", bool addBool = false, bool sentBool = false)
+    {
+        var msg = new OSCMessageOut(Msg.C_CLOSE_ROOM);
+        if (addString != string.Empty)
+            msg.AddString(addString);
+        if (addInt != -1)
+            msg.AddInt(addInt);
+        if (addFloat != -1)
+            msg.AddFloat(addFloat);
+        if (addBool)
+            msg.AddBool(sentBool);
+
+        Client.Instance.Send(msg);
+    }
+    #endregion 
 }

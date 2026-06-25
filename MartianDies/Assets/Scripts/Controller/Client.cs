@@ -1,9 +1,11 @@
+using AniDrag.Utility;
 using NetworkConnections;   // Your TcpNetworkConnection class
 using OSCTools;
 using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Net;
 using System.Threading.Tasks;
 using UnityEngine;
@@ -227,6 +229,80 @@ public class Client : MonoBehaviour
     {
         string message = msg.ReadString();
         Log("Server Broadcast", message);
+    }
+
+    [Button]
+    public void Debug_SendMessage(string message)
+    {
+        if (string.IsNullOrWhiteSpace(message)) return;
+
+        string[] tokens = message.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+        if (tokens.Length == 0) return;
+
+        // First token = OSC address (header)
+        string address = tokens[0];
+        if (!address.StartsWith("/"))
+        {
+            Debug.LogWarning($"Address '{address}' must start with '/'");
+            return;
+        }
+        var msg = new OSCMessageOut(address);
+
+        // Parse parameters from the remaining tokens
+        for (int i = 1; i < tokens.Length; i++)
+        {
+            string token = tokens[i];
+            if (!token.StartsWith("/")) continue; // safety
+
+            string trimmed = token.Substring(1);          // remove leading '/'
+            int underscoreIndex = trimmed.IndexOf('_');
+            if (underscoreIndex == -1) continue;          // skip invalid tokens
+
+            string type = trimmed.Substring(0, underscoreIndex).ToLower();
+            string value = trimmed.Substring(underscoreIndex + 1);
+
+            switch (type)
+            {
+                case "bool":
+                    if (bool.TryParse(value, out bool b))
+                        msg.AddBool(b);
+                    break;
+
+                case "int":
+                    if (int.TryParse(value, out int j))
+                        msg.AddInt(j);
+                    break;
+
+                case "float":
+                    if (float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out float f))
+                        msg.AddFloat(f);
+                    break;
+
+                case "string":
+                    msg.AddString(value);
+                    break;
+
+                default:
+                    // Unknown type – add as string .. mybe? could be good for testing 
+                    Debug.LogWarning("[Client] - [Debug message] | type wmismatch incorect string attached or i deserialized it wrong");
+                    // msg.AddString(value);
+                    break;
+            }
+        }
+
+        Client.Instance.Send(msg);
+    }
+
+    // Map headers to actual OSC addresses
+    private string GetAddressFromHeader(string header)
+    {
+        // Add your own mappings here
+        switch (header)
+        {
+            case "initial": return Msg.C_CLOSE_ROOM;   // e.g., "/close_room"
+                                                       // case "another": return "/some/other/address";
+            default: return null; // unknown header
+        }
     }
 
     #region Timeout controls
