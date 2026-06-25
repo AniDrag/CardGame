@@ -594,3 +594,150 @@ namespace CreeperDice_Net_Proj
         #endregion
     }
 }
+
+/*
+Q & A session – TcpServer
+
+Q1: What is the primary responsibility of TcpServer?
+A1: It manages the server-side networking, OSC message routing, client connections, room state, and game logic.
+    It acts as the central hub for the multiplayer application, processing incoming requests and broadcasting
+    updates to connected clients. It also includes administrative features (console commands, rate limiting, banning).
+
+Q2: Why is there a _sync object used with lock statements throughout the class?
+A2: The server handles multiple clients concurrently. The Update() loop runs on the main thread, but network
+    callbacks (like OnRegister, OnDisconnect) are triggered from the OSC dispatcher, which may be called from
+    different contexts (e.g., thread pool). To prevent race conditions when accessing shared collections
+    (_connections, _clients, _rooms, etc.), we use lock(_sync) to ensure thread safety.
+
+Q3: Why does the server use a synchronous Update() loop with Thread.Sleep instead of async/await?
+A3: This is a console application with no UI, so a simple synchronous loop is sufficient. It processes network
+    updates at ~25 Hz, which is adequate for a test server. Async/await would add complexity without much benefit.
+    The internal TCP operations (TcpListener, TcpClient) may still be asynchronous, but the top-level loop is
+    synchronous for simplicity and clarity.
+
+Q4: How does the server handle client connections and disconnections?
+A4: AcceptNewConnections() checks for pending connections and adds them to the _connections list. UpdateConnections()
+    reads incoming packets from each connection. CleanupConnections() removes connections that are no longer connected
+    and calls RemoveClient() to clean up associated data (rooms, IDs). Disconnections are also triggered by the
+    C_DISCONNECT OSC message, which calls RemoveClient().
+
+Q5: Why are there separate methods for AcceptNewConnections, UpdateConnections, and CleanupConnections?
+A5: This follows the Single Responsibility Principle. Each method handles one aspect of the connection lifecycle:
+    accepting new ones, processing data from existing ones, and cleaning up dead ones. This makes the code easier
+    to read, test, and modify.
+
+Q6: What is the purpose of the OSCDispatcher, and how is it used?
+A6: The OSCDispatcher routes incoming OSC messages to registered handlers based on the message address. We register
+    handlers for C_REGISTER and C_DISCONNECT in Start(). When a packet arrives, UpdateConnections() calls
+    _dispatcher.HandlePacket(), which invokes the appropriate callback (OnRegister or OnDisconnect). This decouples
+    message parsing from business logic.
+
+Q7: How does the server handle invalid or malicious clients?
+A7: The server implements:
+    - Rate limiting: tracks requests per second per IP. If a client exceeds MaxRequestsPerSecond (50), it gets a ban
+      strike. After BanThreshold (5) strikes, the IP is banned for BanDurationSeconds (300s).
+    - Malicious strikes: The AddMaliciousStrike() method increments a per-client counter; after 3 strikes, the user
+      is kicked. This can be triggered by invalid messages or abuse.
+    - Capped usernames: OnRegister reads strings with a maximum length (12) to prevent buffer overflow or spam.
+
+Q8: Why does the server store clients in a Dictionary<int, ClientInfo> by ID and a separate Dictionary<TcpNetworkConnection, int> mapping connections to IDs?
+A8: Having both dictionaries allows efficient lookups by either ID (for console commands) or by connection (for
+    handling incoming messages where we only have the connection). This avoids iterating over the entire client list
+    for each operation.
+
+Q9: How does the server manage rooms and participants?
+A9: Rooms are stored in a Dictionary<string, RoomData> keyed by room name. Each RoomData contains a list of
+    Participant objects (id, name, score). When a client creates or joins a room, the room is updated, and the
+    client's CurrentRoom field is set. When a client disconnects, they are removed from the room, and if the room
+    becomes empty, it is deleted.
+
+Q10: What is the role of the LobbyState and GameState properties?
+A10: They likely encapsulate the game logic for the lobby (e.g., room listing, joining) and the active game
+    (e.g., turn management, dice rolls). This separates concerns: TcpServer handles networking and state storage,
+    while these state objects handle the specific game rules. The server passes itself to them via constructor,
+    allowing them to access clients and send messages.
+
+Q11: Why are there console command methods (GetAllPlayersInfo, KickUser, SendPrivateMessage, etc.)?
+A11: These methods expose server functionality to the ConsoleCommandHandler, allowing administrators to monitor
+    and control the server via the console. This is useful for debugging, moderation, and manual testing without
+    a client UI. The methods are designed to be called from a separate thread (or main loop) safely, using locks.
+
+Q12: How does the server send messages to clients, and why is there a Send method that catches exceptions?
+A12: The Send() method wraps conn.Send(msg.GetBytes()) in try-catch. This prevents exceptions (e.g., ObjectDisposedException)
+    from crashing the server if a client disconnects abruptly while we are sending. It logs the error and continues,
+    maintaining server stability.
+
+Q13: Why does the server use IPEndPoint for identifying clients in some places and TcpNetworkConnection in others?
+A13: The OSC dispatcher passes the remote IPEndPoint, so we use GetConnectionByEndpoint to find the corresponding
+    connection. This is necessary because the dispatcher only knows the endpoint, not the connection object. The
+    server then uses the connection for sending messages.
+
+Q14: How does the server handle broadcasting to a room or to all clients?
+A14: BroadcastToRoom() iterates over all clients and sends the message to those whose CurrentRoom matches the room
+    name. BroadcastToAll() sends to every connected client. Both methods use locking to safely iterate over the
+    client dictionary.
+
+Q15: Why are there separate messages for S_CREATED_ROOM, S_JOINED, S_ROOM_UPDATE, etc.?
+A15: These messages correspond to the OSC messages defined in the client's Msg class. They ensure the server and
+    client communicate using a consistent protocol. Each message type carries specific data (room name, participant
+    count, host, etc.) to update the client's UI state accordingly.
+
+Q16: How does the server handle the case where a host leaves a room?
+A16: In RemoveClient(), if the client is in a room and was the host, the server finds the first remaining participant
+    and assigns them as the new host (room.host = newHost.clientName). This ensures the room remains functional
+    even if the original host disconnects.
+
+Q17: Why is there a _maliciousStrikes dictionary and an AddMaliciousStrike method?
+A17: This is an additional security measure to automatically kick abusive clients after repeated violations (e.g.,
+    sending invalid messages, spamming, trying to cheat). It complements the IP-based rate limiting. The strikes
+    are per client, not per IP, so a legitimate user on a shared IP is not unfairly penalised.
+
+Q18: What is the purpose of _selectedUser in the server?
+A18: It stores a reference to a client selected via a console command (SelectUser). This allows subsequent commands
+    (e.g., SendPrivateMessage, ChangeUserName) to operate on that user without needing to specify the ID each time.
+    It's a convenience for interactive console use.
+
+Q19: Why does the server use a ReaderWriterLockSlim or only a simple lock?
+A19: The code uses a simple lock (_sync) for all shared resource access. Since the server is not highly concurrent
+    (one main Update loop and occasional callbacks), a simple lock is sufficient and avoids the complexity of
+    ReaderWriterLockSlim. This keeps the code straightforward.
+
+Q20: How does the server handle the transition from lobby to game (StartRoom)?
+A20: When StartRoom is called (via console or internal logic):
+     1. It sets room.GameStarted = true.
+     2. It sends S_GAME_STARTED to all clients in the room, instructing them to load the game scene.
+     3. It broadcasts an S_ROOM_UPDATE to ALL clients with gameStarted = true, so the room disappears from the lobby list.
+     4. It calls game.StartGameForRoom(room) to initialise game state (e.g., dice rolling order).
+    This ensures a smooth transition for all clients.
+
+Q21: Why is there no async/await in the server's networking code, while the client uses async/await extensively?
+A21: The client is a Unity application with a UI that must remain responsive. Async/await allows non-blocking network
+    operations without freezing the main thread. The server is a console app that runs in a single thread with a
+    dedicated update loop – it doesn't have a UI to freeze, so a synchronous loop is simpler and more predictable.
+    The server's TcpNetworkConnection class may internally use async I/O (BeginReceive), but the exposed Update() method
+    processes data synchronously. This design works well for both environments.
+
+Q22: How does the server ensure data consistency when modifying rooms and clients simultaneously?
+A22: All modifications to shared collections are guarded with lock(_sync). This includes adding/removing clients,
+    updating room participants, and changing CurrentRoom. The lock ensures that operations are atomic and that the
+    server state remains consistent even when multiple callbacks are invoked concurrently.
+
+Q23: What are the weaknesses of this server design?
+A23: Some potential weaknesses:
+      - The synchronous loop with Thread.Sleep may not scale to many clients.
+      - No persistent storage (rooms are lost on restart).
+      - Limited error recovery (e.g., if a client disconnects uncleanly, the server might not detect it immediately).
+      - The rate limiting and banning are simple and could be bypassed with distributed attacks.
+      - Console commands are mixed with server logic, making the class large.
+    However, for a test/development server, these trade-offs are acceptable.
+
+Q24: Why is Msg.PORT defined as 55000 in the client, and the server defaults to that port?
+A24: Consistency. Both sides use the same port number, so they can communicate without additional configuration.
+    55000 is an arbitrary, unprivileged port commonly used for custom applications, avoiding conflicts with well-known services.
+
+Q25: How does the server handle malformed OSC packets?
+A25: The OSCDispatcher may catch parsing exceptions, and the UpdateConnections() loop catches general exceptions
+    when reading from a connection. If a packet cannot be parsed, it is skipped, and an error is logged. The client
+    connection is not immediately dropped; the server continues processing subsequent packets. This makes the server
+    resilient to accidental corruption.
+*/

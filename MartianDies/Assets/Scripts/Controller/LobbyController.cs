@@ -426,3 +426,107 @@ public class LobbyController : MonoBehaviour
     }
     #endregion 
 }
+
+/*
+Q & A session – LobbyController
+
+Q1: What is the primary responsibility of LobbyController?
+A1: It manages the lobby UI state, sends OSC commands to the server (create/join/leave rooms, start game), 
+    and processes incoming OSC messages to update the UI accordingly. It acts as a bridge between the 
+    network layer (Client) and the presentation layer (views).
+
+Q2: Why does LobbyController reference multiple view components (LobbyView, HostRoomView, etc.)?
+A2: Each view represents a different UI panel (room list, host controls, waiting screen). By referencing 
+    them directly, the controller can toggle visibility and update data without the views needing to know 
+    about the network or game logic. This follows the MVC/MVP pattern where the controller handles logic.
+
+Q3: What is the purpose of pendingRoomCreation and pendingRoomName?
+A3: pendingRoomCreation prevents multiple simultaneous room creation requests. pendingRoomName stores the 
+    name of the room being created or joined, used to handle timeouts and avoid race conditions when 
+    responses arrive.
+
+Q4: Why are there separate EventBindings for each UI action (CreateRoom, JoinRoom, etc.)?
+A4: These bindings allow other parts of the code (e.g., UI buttons) to trigger lobby actions via the 
+    EventBus. This decouples the UI from the controller – the UI publishes events, and the controller 
+    subscribes to them, making the code more maintainable and testable.
+
+Q5: Why does LobbyController subscribe to OSC listeners in SubscribeOSC() and also to EventBus?
+A5: OSC listeners handle incoming server messages (e.g., room list, updates). EventBus subscriptions 
+    handle local UI events (button clicks). This separation keeps network handling separate from UI 
+    interaction, improving clarity.
+
+Q6: Why use timeouts (Client.Instance.StartTimeout) for create/join room operations?
+A6: Network operations may hang if the server doesn't respond. Timeouts ensure that the UI isn't stuck 
+    indefinitely – they reset pending states and re-enable buttons so the user can retry.
+
+Q7: Why does OnRoomCreated only show HostRoomView if the host is the current user?
+A7: The server sends the room data to all clients after creation. Only the creator should see the host 
+    controls; others will later see the waiting view when they join. The check hostName == Client.Instance.Username 
+    correctly differentiates the host.
+
+Q8: What does OnRoomJoined do, and why does it update both the room list and the waiting view?
+A8: OnRoomJoined is triggered when a non-host joins a room. It updates the room’s participant count in 
+    the lobby list, sets the current room, and shows the WaitingForHostView for the joining player. 
+    It also cancels the join timeout and re-enables buttons.
+
+Q9: Why is Client.Instance.CurrentRoom set in OnRoomCreated and OnRoomJoined?
+A9: This tracks which room the player is currently in. It is used later in OnRoomUpdate and OnRoomClosed 
+    to update the appropriate UI panel and manage state transitions.
+
+Q10: What is the role of OnRoomUpdate, and why does it both update existing rooms and create new ones?
+A10: The server can broadcast room updates (new participant, host change). OnRoomUpdate handles both 
+     scenarios: if the room exists, update its data; otherwise, add it to the dictionary and list. 
+     This keeps the lobby list in sync without requiring a full refresh.
+
+Q11: How does OnRoomClosed handle room closure for the current player?
+A11: It removes the room from the local dictionary, refreshes the room list UI, and if the closed room 
+     is the one the player is currently in, it resets the UI to the lobby state (hides panels, re-enables 
+     buttons) and requests a fresh room list.
+
+Q12: Why does OnGameStarted load the Game scene immediately?
+A12: When the server signals that the game has started, all clients must transition to the game scene. 
+     Using SceneManager.LoadScene is a straightforward way to change scenes. The event ensures the 
+     transition happens for all players simultaneously.
+
+Q13: What is the purpose of the three debug methods (Debug_StartGame, Debug_LeaveRoom, Debug_CloseRoom)?
+A13: They are inspector?accessible buttons (via [Button]) for manual testing. They send the corresponding 
+     OSC messages with optional extra parameters, allowing developers to test server responses without 
+     going through the UI flow. They are marked as debug tools.
+
+Q14: Why are optional parameters (addInt, addFloat, etc.) included in the debug methods?
+A14: These mimic the original Debug_CloseRoom pattern, allowing testers to append extra arguments to the 
+     OSC message. However, they are currently not used meaningfully – they could be for future extensions 
+     or to simulate specific server requests.
+
+Q15: Why is OnRoomCreated not setting pendingRoomCreation = false if something fails?
+A15: Actually, it does set it to false after cancelling the timeout. The only failure scenario would be 
+     a corrupt message or missing data, but the method always resets the flag. The timeout also resets it 
+     if the response never arrives.
+
+Q16: Why does OnRoomCreated call view.CreateRoomEntry(room) even though the room might already exist?
+A16: It adds the room to the lobby list. In the case of creation, the room is new and should appear. 
+     If the room already existed (unlikely), the method would duplicate it, but the server typically 
+     sends a list refresh or update instead. The code could be made safer, but it's acceptable for this 
+     purpose.
+
+Q17: Why does the controller validate references in ValidateReferences() at Start?
+A17: To ensure all required view components are assigned. If any are missing, the controller logs an 
+     error and returns early, preventing null reference exceptions later. This also finds references 
+     in the scene if not manually assigned.
+
+Q18: How does the controller handle disconnection gracefully?
+A18: It subscribes to Client.Instance.OnDisconnected, which triggers loading the main menu and cancelling 
+     any pending timeouts. This ensures the user is returned to the login screen on network loss.
+
+Q19: Why is EventBus used instead of direct method calls from UI?
+A19: EventBus provides a publish/subscribe pattern that reduces coupling. The UI buttons can simply 
+     publish events without knowing which controller or method handles them. This makes it easier to 
+     swap or extend functionality.
+
+Q20: What improvements could be made to this controller?
+A20: Several: 
+     - Use a state machine to manage UI states more robustly.
+     - Handle cases where the room list is updated while the user is in a room.
+     - Add more error handling for malformed OSC messages.
+     - Avoid hardcoding panel references; use a view manager instead.
+*/
