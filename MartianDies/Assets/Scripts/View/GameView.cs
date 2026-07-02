@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -14,7 +15,11 @@ public class GameView : MonoBehaviour
     [SerializeField] private Transform usersPanel;
     [SerializeField] private GameObject userTabPrefab;
 
+    
+
+
     [Header("Dice Fields")]
+    [SerializeField] private float diceSpawnDelay = 0.08f;
     [SerializeField] private Transform rollingZone;
     [SerializeField] private Transform offenseZone;
     [SerializeField] private Transform defenseZone;
@@ -41,6 +46,7 @@ public class GameView : MonoBehaviour
 
     private readonly Dictionary<string, UserView> userViews = new();
 
+    private Coroutine diceSpawnCoroutine;
     #endregion
 
     #region Turn Display
@@ -101,29 +107,14 @@ public class GameView : MonoBehaviour
 
     #region Dice Generation
 
-    public void GenerateRollingZoneDice(List<int> diceValues)
+    public void GenerateRollingZoneDice(List<int> dice)
     {
+        if (diceSpawnCoroutine != null)
+            StopCoroutine(diceSpawnCoroutine);
+
         ClearZone(rollingZone);
 
-        foreach (int diceValue in diceValues)
-        {
-            if (!IsValidDiceIndex(diceValue))
-            {
-                Client.Log("[GameView] Invalid dice index: " + diceValue);
-                continue;
-            }
-
-            if (diceValue == (int)DiceType.Tank)
-            {
-                GenerateCombatZoneDice(diceValue);
-                continue;
-            }
-
-            GameObject dice = Instantiate(dicePrefab, rollingZone);
-
-            DiceView diceView = dice.GetComponent<DiceView>();
-            diceView.Initialize(diceValue, false);
-        }
+        diceSpawnCoroutine = StartCoroutine(GenerateRollingZoneDiceRoutine(dice));
     }
 
     public void GenerateCombatZoneDice(int diceType)
@@ -243,6 +234,37 @@ public class GameView : MonoBehaviour
     #endregion
 
     #region Helpers
+
+    private IEnumerator GenerateRollingZoneDiceRoutine(List<int> dice)
+    {
+        foreach (int diceType in dice)
+        {
+            if (diceType == 3)
+            {
+                GenerateCombatZoneDice(diceType);
+            }
+            else
+            {
+                SpawnDiceInZone(diceType, rollingZone, false);
+            }
+
+            yield return new WaitForSeconds(diceSpawnDelay);
+        }
+
+        diceSpawnCoroutine = null;
+    }
+
+    private DiceView SpawnDiceInZone(int diceType, Transform parent, bool selectable)
+    {
+        GameObject diceObject = Instantiate(dicePrefab, parent);
+
+        DiceView diceView = diceObject.GetComponent<DiceView>();
+
+        if (diceView != null)
+            diceView.Initialize(diceType, selectable);
+
+        return diceView;
+    }
     private bool IsPointDice(int diceType)
     {
         return diceType >= 0 && diceType <= 2;

@@ -14,6 +14,15 @@ namespace CreeperDice_Net_Proj.Model
 
         private readonly int _startingDiceCount;
 
+        private readonly Dictionary<int, int> _diceWeights = new()
+        {
+            { Human, 25 },
+            { Cow, 25 },
+            { Chicken, 20 },
+            { Tank, 10 },
+            { Ufo, 20 }
+        };
+
         public int DiceToRoll { get; private set; }
 
         // Points collected during this current turn only.
@@ -92,7 +101,7 @@ namespace CreeperDice_Net_Proj.Model
 
             for (int i = 0; i < diceAmountThisRoll; i++)
             {
-                int value = Random.Shared.Next(0, 5);
+                int value = RollWeightedDice();
 
                 _currentRoll.Add(value);
 
@@ -105,6 +114,22 @@ namespace CreeperDice_Net_Proj.Model
             CollectTanksAutomatically();
 
             Phase = RoomGamePhase.WaitingForDiceSelection;
+        }
+
+        private int RollWeightedDice()
+        {
+            int totalWeight = _diceWeights.Values.Sum();
+            int roll = Random.Shared.Next(0, totalWeight);
+
+            foreach (KeyValuePair<int, int> pair in _diceWeights)
+            {
+                if (roll < pair.Value)
+                    return pair.Key;
+
+                roll -= pair.Value;
+            }
+
+            return Human;
         }
 
         private void CollectTanksAutomatically()

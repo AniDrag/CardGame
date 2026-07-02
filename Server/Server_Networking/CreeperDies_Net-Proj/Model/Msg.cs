@@ -23,7 +23,7 @@ namespace CreeperDice_Net_Proj.Model
         public const string S_SHUTDOWN = "/s_shutdown";                     // String                                       | reason                                                                                    | Y (all clients)
         public const string S_SERVER_MESSAGE = "/s_server_message";         // String                                       | message                                                                                   | Y / RoomY / N
         public const string S_ERROR = "/error";                             // String                                       | errorMessage                                                                              | N (private)
-        
+
         #endregion
 
         #region Server OSC Messages - Main Menu
@@ -55,6 +55,10 @@ namespace CreeperDice_Net_Proj.Model
         public const string S_STAKE_PROMPT = "/s_stake_prompt";             // -                                            | -                                                                                         | N (private to current player) 
         public const string S_INVALID_MOVE = "/s_invalid_move";             // String                                       | reason                                                                                    | N (private to client that made invalid move)
         public const string S_GAME_END = "/s_game_end";                     // String                                       | winnerMessage                                                                             | RoomY (room broadcast)
+        // REPLAY / REMATCH
+        public const string S_REMATCH_UPDATE = "/s_rematch_update";         // Int, Int                                     | readyCount, neededCount                                                                   | RoomY
+        public const string S_REMATCH_STARTED = "/s_rematch_started";       // -                                            | rematch has started                                                                       | RoomY
+        public const string S_RETURN_TO_LOBBY = "/s_return_to_lobby";       // String                                       | reason                                                                                    | N / RoomY
 
         #endregion
 
@@ -85,6 +89,8 @@ namespace CreeperDice_Net_Proj.Model
         public const string C_GAME_SCENE_READY = "/c_game_scene_ready";     // -                                            | game scene loaded and listeners registered                                                | N (private)
         public const string C_SELECT_DICE = "/c_select_dice";               // Int                                          | diceType                                                                                  | N (private)
         public const string C_STAKE_ANSWER = "/c_stake_answer";             // Bool                                         | doReRollOrDoubleStake                                                                     | N (private)
+        public const string C_REMATCH_REQUEST = "/c_rematch_request";       // -                                            | player wants rematch                                                                      | N
+        public const string C_LEAVE_GAME = "/c_leave_game";                 // -                                            | player leaves game room                                                                   | N
 
         #endregion
     }

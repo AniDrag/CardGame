@@ -71,25 +71,29 @@ public class RollAgainView : MonoBehaviour
     {
         if (panel == null)
         {
-            Client.Log("[RollAgainView] Missing panel reference.");
-            return;
+            Client.Log("RollAgainView", "Panel reference missing. Using this gameObject.");
+            panel = gameObject;
         }
 
         panel.SetActive(true);
 
         if (animation != null)
             animation.StartAnimation();
+
+        Client.Log("RollAgainView", "Panel activated.");
     }
 
     public void Hide()
     {
+        if (panel == null)
+            panel = gameObject;
+
         if (panel != null)
             panel.SetActive(false);
 
         if (animation != null)
             animation.StopAnimation();
     }
-
     #endregion
 
     #region UI Events

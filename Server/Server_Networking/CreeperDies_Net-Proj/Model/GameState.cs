@@ -14,7 +14,10 @@ namespace CreeperDice_Net_Proj.Model
 
         private readonly Dictionary<string, HashSet<int>> _readyPlayersByRoom = new();
         private readonly HashSet<string> _startedRooms = new();
+        private readonly Dictionary<string, HashSet<int>> _rematchVotesByRoom = new();
 
+        private readonly Dictionary<string, DateTime> _stakePromptTimesByRoom = new();
+        private readonly TimeSpan _stakeAnswerTimeout = TimeSpan.FromSeconds(20);
         #endregion
 
         #region Constructor
@@ -36,6 +39,8 @@ namespace CreeperDice_Net_Proj.Model
             dispatcher.AddListener(Msg.C_GAME_SCENE_READY, OnGameSceneReady);
             dispatcher.AddListener(Msg.C_SELECT_DICE, OnSelectDice, OSCUtil.INT);
             dispatcher.AddListener(Msg.C_STAKE_ANSWER, OnStakeAnswer, OSCUtil.BOOL);
+            dispatcher.AddListener(Msg.C_REMATCH_REQUEST, OnRematchRequest);
+            dispatcher.AddListener(Msg.C_LEAVE_GAME, OnLeaveGame);
 
             LogGame("Registered game message handlers.");
         }
@@ -43,7 +48,10 @@ namespace CreeperDice_Net_Proj.Model
         #endregion
 
         #region Game Flow
-
+        public void Update()
+        {
+            CheckStakeAnswerTimeouts();
+        }
         public void StartGameForRoom(RoomData room)
         {
             if (room == null)
@@ -154,6 +162,39 @@ namespace CreeperDice_Net_Proj.Model
             }
         }
 
+        private void CheckStakeAnswerTimeouts()
+        {
+            foreach (KeyValuePair<string, DateTime> pair in _stakePromptTimesByRoom.ToList())
+            {
+                string roomName = pair.Key;
+                DateTime promptTime = pair.Value;
+
+                if (DateTime.UtcNow - promptTime < _stakeAnswerTimeout)
+                    continue;
+
+                if (!_server.TryGetRoom(roomName, out RoomData room))
+                {
+                    _stakePromptTimesByRoom.Remove(roomName);
+                    continue;
+                }
+
+                if (room.data == null || room.data.Phase != RoomGamePhase.WaitingForStakeAnswer)
+                {
+                    _stakePromptTimesByRoom.Remove(roomName);
+                    continue;
+                }
+
+                LogGame(room, "Stake answer timeout. Auto-resolving turn.");
+
+                _stakePromptTimesByRoom.Remove(roomName);
+
+                if (room.data.CanBankPoints())
+                    EndTurn(room, busted: false, "Stake answer timed out. Points were banked automatically.");
+                else
+                    EndTurn(room, busted: true, "Stake answer timed out and points could not be banked.");
+            }
+        }
+
         private void EndTurn(RoomData room, bool busted, string reason)
         {
             try
@@ -203,9 +244,91 @@ namespace CreeperDice_Net_Proj.Model
                 EndGame(room, "Game ended because the server failed to end a turn.");
             }
         }
+        private void StartRematch(RoomData room)
+        {
+            if (room == null)
+                return;
 
+            LogGame(room, "Starting rematch.");
+
+            if (_rematchVotesByRoom.ContainsKey(room.roomName))
+                _rematchVotesByRoom[room.roomName].Clear();
+
+            foreach (Participant participant in room.Participants)
+                participant.currPoints = 0;
+
+            SendRematchStarted(room);
+
+            StartGameForRoom(room);
+        }
+
+        private bool ShouldStartRematch(RoomData room)
+        {
+            if (room == null)
+                return false;
+
+            if (room.Participants == null || room.Participants.Count == 0)
+                return false;
+
+            if (!_rematchVotesByRoom.TryGetValue(room.roomName, out HashSet<int> votes))
+                return false;
+
+            return votes.Count >= room.Participants.Count;
+        }
+
+        private void CloseRoomBecauseHostLeft(RoomData room)
+        {
+            if (room == null)
+                return;
+
+            LogGame(room, "Host left. Closing room and returning everyone to lobby.");
+
+            SendReturnToLobby(room, "Host left. Room closed.");
+
+            foreach (Participant participant in room.Participants)
+            {
+                ClientInfo client = _server.FindPlayerById(participant.id);
+
+                if (client != null)
+                    client.CurrentRoom = null;
+            }
+
+            CleanupRoom(room);
+        }
+
+        private void RemovePlayerFromRoom(RoomData room, ClientInfo client)
+        {
+            if (room == null || client == null)
+                return;
+
+            room.Participants.RemoveAll(participant => participant.id == client.Id);
+
+            client.CurrentRoom = null;
+
+            if (_rematchVotesByRoom.TryGetValue(room.roomName, out HashSet<int> votes))
+                votes.Remove(client.Id);
+
+            LogGame(room, $"Removed {client.Name}. Players left={room.Participants.Count}");
+        }
+
+        private void CleanupRoom(RoomData room)
+        {
+            if (room == null)
+                return;
+
+            LogGame(room, "Cleaning up room.");
+
+            _readyPlayersByRoom.Remove(room.roomName);
+            _startedRooms.Remove(room.roomName);
+            _rematchVotesByRoom.Remove(room.roomName);
+
+            _server.RemoveRoom(room.roomName);
+        }
         private void EndGame(RoomData room, string message)
         {
+            if (room == null)
+                return;
+
             LogGame(room, "Game ended. " + message);
 
             if (room.data != null)
@@ -213,12 +336,12 @@ namespace CreeperDice_Net_Proj.Model
 
             SendGameEnd(room, message);
 
-            _readyPlayersByRoom.Remove(room.roomName);
-            _startedRooms.Remove(room.roomName);
+            if (!_rematchVotesByRoom.ContainsKey(room.roomName))
+                _rematchVotesByRoom[room.roomName] = new HashSet<int>();
 
-            _server.RemoveRoom(room.roomName);
+            SendRematchUpdate(room);
         }
-
+        
         #endregion
 
         #region Received Messages
@@ -372,6 +495,8 @@ namespace CreeperDice_Net_Proj.Model
             if (!ValidateCurrentPlayer(client, out RoomData room, out GameData data))
                 return;
 
+            _stakePromptTimesByRoom.Remove(room.roomName);
+
             if (data.Phase != RoomGamePhase.WaitingForStakeAnswer)
             {
                 LogGame(room, $"{client.Name} tried to answer stake during invalid phase: {data.Phase}.");
@@ -396,6 +521,90 @@ namespace CreeperDice_Net_Proj.Model
 
             SendGameAnnouncement(room, $"{client.Name} chose double stake.");
             RollForRoom(room);
+        }
+
+        private void OnRematchRequest(OSCMessageIn msg, IPEndPoint sender)
+        {
+            ClientInfo client = _server.GetClientByEndpoint(sender);
+
+            if (client == null)
+            {
+                LogGame($"Unknown endpoint sent rematch request: {sender}");
+                return;
+            }
+
+            if (!TryGetClientRoom(client, out RoomData room))
+            {
+                SendInvalidMove(client, "You are not in a room.");
+                return;
+            }
+
+            if (room.data == null || room.data.Phase != RoomGamePhase.Finished)
+            {
+                LogGame(room, $"{client.Name} tried to rematch before the game ended.");
+                SendInvalidMove(client, "You can only rematch after the game ends.");
+                return;
+            }
+
+            if (!_rematchVotesByRoom.TryGetValue(room.roomName, out HashSet<int> votes))
+            {
+                votes = new HashSet<int>();
+                _rematchVotesByRoom[room.roomName] = votes;
+            }
+
+            votes.Add(client.Id);
+
+            LogGame(room, $"{client.Name} wants rematch. Votes={votes.Count}/{room.Participants.Count}");
+
+            SendRematchUpdate(room);
+
+            if (votes.Count >= room.Participants.Count)
+            {
+                StartRematch(room);
+            }
+        }
+
+        private void OnLeaveGame(OSCMessageIn msg, IPEndPoint sender)
+        {
+            ClientInfo client = _server.GetClientByEndpoint(sender);
+
+            if (client == null)
+            {
+                LogGame($"Unknown endpoint sent leave game: {sender}");
+                return;
+            }
+
+            if (!TryGetClientRoom(client, out RoomData room))
+            {
+                SendReturnToLobby(client, "You are not in a room.");
+                return;
+            }
+
+            bool isHost = room.host == client.Name;
+
+            LogGame(room, $"{client.Name} left the game. IsHost={isHost}");
+
+            if (isHost)
+            {
+                CloseRoomBecauseHostLeft(room);
+                return;
+            }
+
+            RemovePlayerFromRoom(room, client);
+
+            SendReturnToLobby(client, "You left the game.");
+
+            if (room.Participants.Count <= 0)
+            {
+                CleanupRoom(room);
+                return;
+            }
+
+            SendGameAnnouncement(room, $"{client.Name} left the game.");
+            SendRematchUpdate(room);
+
+            if (ShouldStartRematch(room))
+                StartRematch(room);
         }
 
         #endregion
@@ -504,6 +713,9 @@ namespace CreeperDice_Net_Proj.Model
         {
             LogGame($"SEND {Msg.S_STAKE_PROMPT} -> to {client.Name}");
 
+            if (!string.IsNullOrEmpty(client.CurrentRoom))
+                _stakePromptTimesByRoom[client.CurrentRoom] = DateTime.UtcNow;
+
             var msg = new OSCMessageOut(Msg.S_STAKE_PROMPT);
 
             _server.Send(client.Connection, msg);
@@ -550,7 +762,60 @@ namespace CreeperDice_Net_Proj.Model
 
             _server.Send(client.Connection, msg);
         }
+        private void SendRematchUpdate(RoomData room)
+        {
+            if (room == null)
+                return;
 
+            int readyCount = 0;
+            int neededCount = room.Participants != null ? room.Participants.Count : 0;
+
+            if (_rematchVotesByRoom.TryGetValue(room.roomName, out HashSet<int> votes))
+                readyCount = votes.Count;
+
+            LogGame(room, $"SEND {Msg.S_REMATCH_UPDATE} -> {readyCount}/{neededCount}");
+
+            var msg = new OSCMessageOut(Msg.S_REMATCH_UPDATE)
+                .AddInt(readyCount)
+                .AddInt(neededCount);
+
+            _server.BroadcastToRoom(room, msg);
+        }
+
+        private void SendRematchStarted(RoomData room)
+        {
+            LogGame(room, $"SEND {Msg.S_REMATCH_STARTED}");
+
+            var msg = new OSCMessageOut(Msg.S_REMATCH_STARTED);
+
+            _server.BroadcastToRoom(room, msg);
+        }
+
+        private void SendReturnToLobby(ClientInfo client, string reason)
+        {
+            if (client == null)
+                return;
+
+            LogGame($"SEND {Msg.S_RETURN_TO_LOBBY} -> to {client.Name}: {reason}");
+
+            var msg = new OSCMessageOut(Msg.S_RETURN_TO_LOBBY)
+                .AddString(reason);
+
+            _server.Send(client.Connection, msg);
+        }
+
+        private void SendReturnToLobby(RoomData room, string reason)
+        {
+            if (room == null)
+                return;
+
+            LogGame(room, $"SEND {Msg.S_RETURN_TO_LOBBY} -> room: {reason}");
+
+            var msg = new OSCMessageOut(Msg.S_RETURN_TO_LOBBY)
+                .AddString(reason);
+
+            _server.BroadcastToRoom(room, msg);
+        }
         private void SendGameEnd(RoomData room, string message)
         {
             LogGame(room, $"SEND {Msg.S_GAME_END} -> {message}");
@@ -648,6 +913,18 @@ namespace CreeperDice_Net_Proj.Model
             int currentPlayerId = room.data.ParticipantOrder[room.data.CurrentPlayerIndex];
 
             return _server.FindPlayerById(currentPlayerId);
+        }
+        private bool TryGetClientRoom(ClientInfo client, out RoomData room)
+        {
+            room = null;
+
+            if (client == null)
+                return false;
+
+            if (string.IsNullOrEmpty(client.CurrentRoom))
+                return false;
+
+            return _server.TryGetRoom(client.CurrentRoom, out room);
         }
 
         #endregion

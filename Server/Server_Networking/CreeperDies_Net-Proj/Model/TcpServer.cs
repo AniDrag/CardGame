@@ -117,9 +117,19 @@ namespace CreeperDice_Net_Proj.Model
             if (_isShuttingDown)
                 return;
 
-            AcceptNewConnections();
-            UpdateConnections();
-            CleanupConnections();
+            try
+            {
+                AcceptNewConnections();
+                UpdateConnections();
+                CleanupConnections();
+
+                game.Update();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[SERVER UPDATE ERROR] {ex.Message}");
+                Console.WriteLine(ex.StackTrace);
+            }
         }
 
         #endregion
@@ -204,23 +214,34 @@ namespace CreeperDice_Net_Proj.Model
 
         private void AcceptNewConnections()
         {
-            if (_listener == null || !_listener.Pending())
+            if (_listener == null)
                 return;
 
-            TcpClient tcpClient = _listener.AcceptTcpClient();
-            var connection = new TcpNetworkConnection(tcpClient);
-
-            if (connection.Status == ConnectionStatus.Connected)
+            while (_listener.Pending())
             {
-                lock (_sync)
-                    _connections.Add(connection);
+                try
+                {
+                    TcpClient tcpClient = _listener.AcceptTcpClient();
+                    var connection = new TcpNetworkConnection(tcpClient);
 
-                Console.WriteLine($"[NET] New connection from {connection.Remote}");
-            }
-            else
-            {
-                connection.Close();
-                Console.WriteLine("[NET] Rejected connection.");
+                    if (connection.Status == ConnectionStatus.Connected)
+                    {
+                        lock (_sync)
+                            _connections.Add(connection);
+
+                        Console.WriteLine($"[NET] New connection from {connection.Remote}");
+                    }
+                    else
+                    {
+                        connection.Close();
+                        Console.WriteLine("[NET] Rejected connection.");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[ACCEPT ERROR] {ex.Message}");
+                    Console.WriteLine(ex.StackTrace);
+                }
             }
         }
 
@@ -237,6 +258,12 @@ namespace CreeperDice_Net_Proj.Model
 
         private void ProcessConnectionPackets(TcpNetworkConnection connection)
         {
+            if (connection == null)
+                return;
+
+            if (connection.Status != ConnectionStatus.Connected)
+                return;
+
             try
             {
                 while (connection.Available() > 0)
@@ -255,6 +282,7 @@ namespace CreeperDice_Net_Proj.Model
             catch (Exception ex)
             {
                 Console.WriteLine($"[ERROR] Reading from {connection.Remote}: {ex.Message}");
+                Console.WriteLine(ex.StackTrace);
             }
         }
 
@@ -357,10 +385,14 @@ namespace CreeperDice_Net_Proj.Model
             if (!_rooms.TryGetValue(client.CurrentRoom, out RoomData room))
                 return;
 
+            bool wasHost = room.host == client.Name;
+
             Participant participant = room.Participants.FirstOrDefault(p => p.id == client.Id);
 
             if (participant != null)
                 room.Participants.Remove(participant);
+
+            client.CurrentRoom = null;
 
             if (room.Participants.Count == 0)
             {
@@ -368,13 +400,67 @@ namespace CreeperDice_Net_Proj.Model
                 return;
             }
 
-            if (room.host == client.Name)
+            if (wasHost)
             {
+                if (room.GameStarted)
+                {
+                    CloseRoomBecauseHostDisconnected(room);
+                    return;
+                }
+
                 Participant newHost = room.Participants.First();
                 room.host = newHost.clientName;
+
+                SendRoomUpdate(room);
+            }
+            else
+            {
+                SendRoomUpdate(room);
             }
         }
+        private void CloseRoomBecauseHostDisconnected(RoomData room)
+        {
+            if (room == null)
+                return;
 
+            string roomName = room.roomName;
+
+            var returnMsg = new OSCMessageOut(Msg.S_RETURN_TO_LOBBY)
+                .AddString("Host disconnected. Room closed.");
+
+            foreach (Participant participant in room.Participants.ToList())
+            {
+                if (_clients.TryGetValue(participant.id, out ClientInfo client))
+                {
+                    client.CurrentRoom = null;
+                    SendToClient(client, returnMsg);
+                }
+            }
+
+            var closedMsg = new OSCMessageOut(Msg.S_CLOSED_ROOM)
+                .AddString(roomName);
+
+            SendToAll(closedMsg);
+
+            _rooms.Remove(roomName);
+
+            Console.WriteLine($"[ROOM] Host disconnected. Closed room '{roomName}'.");
+        }
+
+        private void SendRoomUpdate(RoomData room)
+        {
+            if (room == null)
+                return;
+
+            var updateMsg = new OSCMessageOut(Msg.S_ROOM_UPDATE)
+                .AddString(room.roomName)
+                .AddInt(room.Participants.Count)
+                .AddString(room.host)
+                .AddInt(room.pointGoal)
+                .AddBool(room.GameStarted);
+
+            SendToAll(updateMsg);
+        }
         public ClientInfo GetClientByConnection(TcpNetworkConnection connection)
         {
             lock (_sync)
@@ -500,14 +586,20 @@ namespace CreeperDice_Net_Proj.Model
 
         public void SendToRoom(string roomName, OSCMessageOut msg)
         {
+            if (string.IsNullOrEmpty(roomName) || msg == null)
+                return;
+
+            List<ClientInfo> targets;
+
             lock (_sync)
             {
-                foreach (ClientInfo client in _clients.Values)
-                {
-                    if (client.CurrentRoom == roomName)
-                        SendToConnection(client.Connection, msg);
-                }
+                targets = _clients.Values
+                    .Where(client => client.CurrentRoom == roomName)
+                    .ToList();
             }
+
+            foreach (ClientInfo client in targets)
+                SendToConnection(client.Connection, msg);
         }
 
         public void SendToRoom(RoomData room, OSCMessageOut msg)
@@ -520,10 +612,17 @@ namespace CreeperDice_Net_Proj.Model
 
         public void SendToAll(OSCMessageOut msg)
         {
+            if (msg == null)
+                return;
             lock (_sync)
             {
-                foreach (ClientInfo client in _clients.Values)
-                    SendToConnection(client.Connection, msg);
+                List<ClientInfo> targets;
+
+           
+                targets = _clients.Values.ToList();
+
+            foreach (ClientInfo client in targets)
+                SendToConnection(client.Connection, msg);
             }
         }
 

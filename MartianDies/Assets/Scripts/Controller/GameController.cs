@@ -15,7 +15,7 @@ public class GameController : MonoBehaviour
     [SerializeField] private RollAgainView rollAgainView;
     [SerializeField] private RoundResultsView roundResultsView;
     [SerializeField] private AnnouncementsView announcementsView;
-
+    [SerializeField] private GameOverView gameOverView;
     #endregion
 
     #region State
@@ -44,6 +44,7 @@ public class GameController : MonoBehaviour
         RegisterUIEvents();
         RegisterServerMessages();
         RegisterButtons();
+        RegisterGameOverView();
 
         view.SetTurnIndicator(false);
         view.EnableDiceSelection(false);
@@ -56,6 +57,7 @@ public class GameController : MonoBehaviour
         UnregisterUIEvents();
         UnregisterServerMessages();
         UnregisterButtons();
+        UnregisterGameOverView();
     }
 
     #endregion
@@ -74,16 +76,22 @@ public class GameController : MonoBehaviour
             view = GetComponent<GameView>();
 
         if (confirmChoice == null)
-            confirmChoice = FindFirstObjectByType<ConfirmChoiceView>();
+            confirmChoice = FindFirstObjectByType<ConfirmChoiceView>(FindObjectsInactive.Include);
 
         if (rollAgainView == null)
-            rollAgainView = FindFirstObjectByType<RollAgainView>();
+            rollAgainView = FindFirstObjectByType<RollAgainView>(FindObjectsInactive.Include);
 
         if (roundResultsView == null)
-            roundResultsView = FindFirstObjectByType<RoundResultsView>();
+            roundResultsView = FindFirstObjectByType<RoundResultsView>(FindObjectsInactive.Include);
 
         if (announcementsView == null)
-            announcementsView = FindFirstObjectByType<AnnouncementsView>();
+            announcementsView = FindFirstObjectByType<AnnouncementsView>(FindObjectsInactive.Include);
+
+        if (rollAgainView == null)
+            rollAgainView = FindFirstObjectByType<RollAgainView>(FindObjectsInactive.Include);
+
+        if (gameOverView == null)
+            gameOverView = FindFirstObjectByType<GameOverView>(FindObjectsInactive.Include);
 
         bool valid = true;
 
@@ -112,6 +120,24 @@ public class GameController : MonoBehaviour
         }
 
         return valid;
+    }
+
+    private void RegisterGameOverView()
+    {
+        if (gameOverView == null)
+            return;
+
+        gameOverView.OnRematchClicked += SendRematchRequest;
+        gameOverView.OnLeaveClicked += SendLeaveGame;
+    }
+
+    private void UnregisterGameOverView()
+    {
+        if (gameOverView == null)
+            return;
+
+        gameOverView.OnRematchClicked -= SendRematchRequest;
+        gameOverView.OnLeaveClicked -= SendLeaveGame;
     }
 
     #endregion
@@ -151,6 +177,10 @@ public class GameController : MonoBehaviour
         client.AddListener(Msg.S_STAKE_PROMPT, OnStakePrompt);
         client.AddListener(Msg.S_INVALID_MOVE, OnInvalidMove, OSCUtil.STRING);
         client.AddListener(Msg.S_GAME_END, OnGameEnd, OSCUtil.STRING);
+
+        client.AddListener(Msg.S_REMATCH_UPDATE, OnRematchUpdate, OSCUtil.INT, OSCUtil.INT);
+        client.AddListener(Msg.S_REMATCH_STARTED, OnRematchStarted);
+        client.AddListener(Msg.S_RETURN_TO_LOBBY, OnReturnToLobby, OSCUtil.STRING);
     }
 
     private void UnregisterServerMessages()
@@ -171,6 +201,10 @@ public class GameController : MonoBehaviour
         client.RemoveListener(Msg.S_STAKE_PROMPT, OnStakePrompt);
         client.RemoveListener(Msg.S_INVALID_MOVE, OnInvalidMove);
         client.RemoveListener(Msg.S_GAME_END, OnGameEnd);
+
+        client.RemoveListener(Msg.S_REMATCH_UPDATE, OnRematchUpdate);
+        client.RemoveListener(Msg.S_REMATCH_STARTED, OnRematchStarted);
+        client.RemoveListener(Msg.S_RETURN_TO_LOBBY, OnReturnToLobby);
     }
 
     private void RegisterButtons()
@@ -302,15 +336,18 @@ public class GameController : MonoBehaviour
     {
         Client.Log("Game", "Stake prompt received.");
 
-        view.EnableDiceSelection(false);
+        if (view != null)
+            view.EnableDiceSelection(false);
 
         if (rollAgainView == null)
         {
-            Client.Log("[GameController] RollAgainView missing.");
+            Client.Log("GameController", "RollAgainView reference is missing.");
             return;
         }
 
         rollAgainView.Show();
+
+        Client.Log("Game", "RollAgainView.Show() called.");
     }
 
     private void OnInvalidMove(OSCMessageIn msg, IPEndPoint sender)
@@ -322,17 +359,49 @@ public class GameController : MonoBehaviour
         if (_isMyTurn)
             view.SetDiceSelectable(_lastSelectableDice, true);
     }
+    private void OnRematchUpdate(OSCMessageIn msg, IPEndPoint sender)
+    {
+        int readyCount = msg.ReadInt();
+        int neededCount = msg.ReadInt();
 
+        Client.Log("Game", $"Rematch update: {readyCount}/{neededCount}");
+
+        if (gameOverView != null)
+            gameOverView.SetRematchStatus(readyCount, neededCount);
+    }
+
+    private void OnRematchStarted(OSCMessageIn msg, IPEndPoint sender)
+    {
+        Client.Log("Game", "Rematch started.");
+
+        if (gameOverView != null)
+            gameOverView.Hide();
+
+        view.ClearTurnDiceZones();
+        view.SyncTurnStats(0, 0, 0, false);
+        view.EnableDiceSelection(false);
+    }
+
+    private void OnReturnToLobby(OSCMessageIn msg, IPEndPoint sender)
+    {
+        string reason = msg.ReadString();
+
+        Client.Log("Game", "Returning to lobby: " + reason);
+
+        Client.Instance.CurrentRoom = null;
+
+        SceneManager.LoadSceneAsync(Scenes.Lobby);
+    }
     private void OnGameEnd(OSCMessageIn msg, IPEndPoint sender)
     {
-        string winnerMessage = msg.ReadString();
+        string message = msg.ReadString();
 
-        announcementsView.ShowAnnouncement(winnerMessage);
+        Client.Log("Game", "Game ended: " + message);
 
         view.EnableDiceSelection(false);
-        rollAgainView.Hide();
 
-        Invoke(nameof(ReturnToLobby), 3f);
+        if (gameOverView != null)
+            gameOverView.Show(message);
     }
 
     #endregion
@@ -390,7 +459,23 @@ public class GameController : MonoBehaviour
 
         rollAgainView.Hide();
     }
+    private void SendRematchRequest()
+    {
+        var msg = new OSCMessageOut(Msg.C_REMATCH_REQUEST);
 
+        Client.Instance.Send(msg);
+
+        Client.Log("Game", "Sent rematch request.");
+    }
+
+    private void SendLeaveGame()
+    {
+        var msg = new OSCMessageOut(Msg.C_LEAVE_GAME);
+
+        Client.Instance.Send(msg);
+
+        Client.Log("Game", "Sent leave game.");
+    }
     #endregion
 
     #region Helpers
