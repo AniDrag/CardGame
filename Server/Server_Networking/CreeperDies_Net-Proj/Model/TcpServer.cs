@@ -97,6 +97,7 @@ namespace CreeperDice_Net_Proj.Model
             RegisterHandlers();
 
             Console.WriteLine($"TCP OSC Server running on port {port}");
+            PrintServerAddresses(port);
         }
 
         public void Stop()
@@ -768,6 +769,47 @@ namespace CreeperDice_Net_Proj.Model
             );
         }
 
+        #endregion
+        #region Server Info Printing
+        private void PrintServerAddresses(int port)
+        {
+            Console.WriteLine();
+            Console.WriteLine("=== Server Network Addresses ===");
+            Console.WriteLine($"Listening on all interfaces: 0.0.0.0:{port}");
+            Console.WriteLine($"Same PC only: 127.0.0.1:{port}");
+            Console.WriteLine();
+            Console.WriteLine("Use one of these IPv4 addresses from another device on the same network:");
+
+            foreach (NetworkInterface networkInterface in NetworkInterface.GetAllNetworkInterfaces())
+            {
+                if (networkInterface.OperationalStatus != OperationalStatus.Up)
+                    continue;
+
+                if (networkInterface.NetworkInterfaceType == NetworkInterfaceType.Loopback)
+                    continue;
+
+                if (networkInterface.NetworkInterfaceType == NetworkInterfaceType.Tunnel)
+                    continue;
+
+                IPInterfaceProperties properties = networkInterface.GetIPProperties();
+
+                foreach (UnicastIPAddressInformation addressInfo in properties.UnicastAddresses)
+                {
+                    IPAddress address = addressInfo.Address;
+
+                    if (address.AddressFamily != AddressFamily.InterNetwork)
+                        continue;
+
+                    if (IPAddress.IsLoopback(address))
+                        continue;
+
+                    Console.WriteLine($" - {address}:{port}    ({networkInterface.Name})");
+                }
+            }
+
+            Console.WriteLine("================================");
+            Console.WriteLine();
+        }
         #endregion
 
         #region Console Command Support
