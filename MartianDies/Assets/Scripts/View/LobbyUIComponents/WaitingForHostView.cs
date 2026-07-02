@@ -3,55 +3,96 @@ using AniDrag.UI.Animations;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-// DONE
+
 public class WaitingForHostView : MonoBehaviour
 {
+    #region View References
+
     [SerializeField] private Button leaveRoom;
-    [SerializeField] private TMP_Text WaitingText;
+    [SerializeField] private TMP_Text waitingText;
     [SerializeField] public TMP_Text roomDetails;
     [SerializeField] private TextCoroutineAnimator animation;
 
-    EventBinding<UpdateRoomParticipants> updateRoomParticipantsBinding;
-    EventBinding<JoinRoom> joinRoomBinding;
+    #endregion
+
+    #region State
 
     private RoomDataModel data;
+
+    #endregion
+
+    #region Unity Lifecycle
+
     private void OnEnable()
     {
-        animation.StartAnimation();
-        leaveRoom.onClick.AddListener(() => EventBus<LeaveRoom>.Publish(new LeaveRoom()));
+        RegisterButtons();
 
-        updateRoomParticipantsBinding = new EventBinding<UpdateRoomParticipants>(UpdateParticipantsInRoom);
-        EventBus<UpdateRoomParticipants>.Subscribe(updateRoomParticipantsBinding);
-
-        joinRoomBinding = new EventBinding<JoinRoom>(OnJoin);
-        EventBus<JoinRoom>.Subscribe(joinRoomBinding);
-
-    }
-    public void OnJoin(JoinRoom e)
-    {
-        data = e.data;
-        UpdateDisplay();
-    }
-    public void SetRoomData(RoomDataModel roomData)
-    {
-        data = roomData;
-    }
-    public void UpdateParticipantsInRoom(UpdateRoomParticipants e)
-    {
-        data.participantCount = e.participants;
-        UpdateDisplay();
-    }
-
-    public void UpdateDisplay()
-    {
-        roomDetails.text = $"{data.roomName}\n{data.participantCount} / 4\nPoint Goal: {data.pointGoal}";
+        if (animation != null)
+            animation.StartAnimation();
     }
 
     private void OnDisable()
     {
-        animation.StopAnimation();
-        leaveRoom.onClick.RemoveListener(() => EventBus<LeaveRoom>.Publish(new LeaveRoom()));
-        EventBus<JoinRoom>.Unsubscribe(joinRoomBinding);
-        EventBus<UpdateRoomParticipants>.Unsubscribe(updateRoomParticipantsBinding);
+        UnregisterButtons();
+
+        if (animation != null)
+            animation.StopAnimation();
     }
+
+    #endregion
+
+    #region Registration
+
+    private void RegisterButtons()
+    {
+        if (leaveRoom != null)
+            leaveRoom.onClick.AddListener(OnLeaveRoomButtonClicked);
+    }
+
+    private void UnregisterButtons()
+    {
+        if (leaveRoom != null)
+            leaveRoom.onClick.RemoveListener(OnLeaveRoomButtonClicked);
+    }
+
+    #endregion
+
+    #region UI Events
+
+    private void OnLeaveRoomButtonClicked()
+    {
+        EventBus<LeaveRoom>.Publish(new LeaveRoom());
+    }
+
+    #endregion
+
+    #region Display
+
+    public void SetRoomData(RoomDataModel roomData)
+    {
+        data = roomData;
+        UpdateDisplay();
+    }
+
+    public void UpdateParticipants(int participants)
+    {
+        if (data == null)
+            return;
+
+        data.participantCount = participants;
+        UpdateDisplay();
+    }
+
+    private void UpdateDisplay()
+    {
+        if (data == null || roomDetails == null)
+            return;
+
+        roomDetails.text =
+            $"{data.roomName}\n" +
+            $"{data.participantCount} / 4\n" +
+            $"Point Goal: {data.pointGoal}";
+    }
+
+    #endregion
 }

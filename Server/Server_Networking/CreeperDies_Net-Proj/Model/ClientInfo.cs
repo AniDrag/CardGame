@@ -1,6 +1,7 @@
 ﻿using NetworkConnections;
 
 namespace CreeperDice_Net_Proj.Model
+
 {
     public class ClientInfo
     {

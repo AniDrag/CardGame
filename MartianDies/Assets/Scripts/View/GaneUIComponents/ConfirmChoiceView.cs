@@ -1,26 +1,95 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class ConfirmChoiceView : MonoBehaviour
 {
+    #region View References
+
+    [SerializeField] private TMP_Text questionText;
     [SerializeField] private Button yesButton;
     [SerializeField] private Button noButton;
     [SerializeField] private GameObject panel;
 
+    #endregion
+
+    #region State
+
     private System.Action<bool> onChoice;
+
+    #endregion
+
+    #region Unity Lifecycle
 
     private void Start()
     {
-        yesButton.onClick.AddListener(() => { onChoice?.Invoke(true); Hide(); });
-        noButton.onClick.AddListener(() => { onChoice?.Invoke(false); Hide(); });
+        RegisterButtons();
         Hide();
     }
+
+    private void OnDestroy()
+    {
+        UnregisterButtons();
+    }
+
+    #endregion
+
+    #region Registration
+
+    private void RegisterButtons()
+    {
+        if (yesButton != null)
+            yesButton.onClick.AddListener(OnYesClicked);
+
+        if (noButton != null)
+            noButton.onClick.AddListener(OnNoClicked);
+    }
+
+    private void UnregisterButtons()
+    {
+        if (yesButton != null)
+            yesButton.onClick.RemoveListener(OnYesClicked);
+
+        if (noButton != null)
+            noButton.onClick.RemoveListener(OnNoClicked);
+    }
+
+    #endregion
+
+    #region Public Controls
 
     public void Show(string question, System.Action<bool> callback)
     {
         onChoice = callback;
-        panel.SetActive(true);
+
+        if (questionText != null)
+            questionText.text = question;
+
+        if (panel != null)
+            panel.SetActive(true);
     }
 
-    public void Hide() => panel.SetActive(false);
+    public void Hide()
+    {
+        if (panel != null)
+            panel.SetActive(false);
+    }
+
+    #endregion
+
+    #region UI Events
+
+    private void OnYesClicked()
+    {
+        onChoice?.Invoke(true);
+        Hide();
+    }
+
+    private void OnNoClicked()
+    {
+        onChoice?.Invoke(false);
+        Hide();
+    }
+
+    #endregion
 }

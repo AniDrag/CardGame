@@ -119,63 +119,6 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
---- !u!1001 &9320169
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: 5855495130377032477, guid: 76b332c57c506be49b582aedac9072c0, type: 3}
-      propertyPath: m_Name
-      value: Client
-      objectReference: {fileID: 0}
-    - target: {fileID: 6907617653208563035, guid: 76b332c57c506be49b582aedac9072c0, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 253.7857
-      objectReference: {fileID: 0}
-    - target: {fileID: 6907617653208563035, guid: 76b332c57c506be49b582aedac9072c0, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 133.56944
-      objectReference: {fileID: 0}
-    - target: {fileID: 6907617653208563035, guid: 76b332c57c506be49b582aedac9072c0, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6907617653208563035, guid: 76b332c57c506be49b582aedac9072c0, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 6907617653208563035, guid: 76b332c57c506be49b582aedac9072c0, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6907617653208563035, guid: 76b332c57c506be49b582aedac9072c0, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6907617653208563035, guid: 76b332c57c506be49b582aedac9072c0, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6907617653208563035, guid: 76b332c57c506be49b582aedac9072c0, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6907617653208563035, guid: 76b332c57c506be49b582aedac9072c0, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6907617653208563035, guid: 76b332c57c506be49b582aedac9072c0, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 76b332c57c506be49b582aedac9072c0, type: 3}
 --- !u!1 &126844658
 GameObject:
   m_ObjectHideFlags: 0
@@ -258,7 +201,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1849818284}
   m_HandleRect: {fileID: 1849818283}
   m_Direction: 2
-  m_Value: 1
+  m_Value: 0
   m_Size: 1
   m_NumberOfSteps: 0
   m_OnValueChanged:
@@ -1595,7 +1538,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WaitingForHostView
   leaveRoom: {fileID: 1242945106}
-  WaitingText: {fileID: 1706146646}
+  waitingText: {fileID: 1706146646}
   roomDetails: {fileID: 840880284}
   animation: {fileID: 1345957553}
 --- !u!114 &1345957553
@@ -1611,7 +1554,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AniDrag.UI.Animations.TextCoroutineAnimator
   targetText: {fileID: 1706146646}
-  animatedText: ....  Dog?
+  animatedText: ..............................................
   staticText: Waiting for host
   charDelay: 0.1
   repeatWaitTime: 1
@@ -2681,6 +2624,10 @@ PrefabInstance:
       propertyPath: m_SizeDelta.y
       value: 301.153
       objectReference: {fileID: 0}
+    - target: {fileID: 8924315878874324773, guid: 1baad0d50d2ef41449f9da08208a5adc, type: 3}
+      propertyPath: m_CullTransparentMesh
+      value: 1
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -2852,4 +2799,3 @@ SceneRoots:
   - {fileID: 519420032}
   - {fileID: 619394802}
   - {fileID: 878013057}
-  - {fileID: 9320169}

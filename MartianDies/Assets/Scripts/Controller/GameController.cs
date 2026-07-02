@@ -4,30 +4,11 @@ using System.Collections.Generic;
 using System.Net;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using UnityEngine.UI;
-
-/// <summary>
-/// Rundow of what i need to accomplish.
-/// 
-///     No. 1:
-///         make sure that it goes.
-///         on round start server rolls dice. 
-///         Display rolled dice on clients.
-///         Server also precalculates and takes all Tanks off the list and adds them to danger slot. so server sends a GameStateModel -> dice rolled list.
-///         -> we send tanks to the danger line since precalculated that we cant select those. Instantiates the dice.
-///         prevent clients from taking action if not on turn.
-///         once rolled dice.interactibel = true and player selects a die 
-///         -> trigger Dice type. 
-///         -> server confirms type,
-///         -> we see if u colected points or whatever, client will do it after server confirms selection of dice,
-///         -> Server sends a lsit of rolled dice if no points aquired his turn. else open stakes roll view.
-///         -> make sure we update view and move in a circle for the players pressent, update charts of point conters per round and a winner screen.
-///         Winner: name of winer
-///         YOU LOSE example if u didnt win ull see U Lose and the winers name on the bottom.
-/// </summary>
 
 public class GameController : MonoBehaviour
 {
+    #region View References
+
     [Header("View References")]
     [SerializeField] private GameView view;
     [SerializeField] private ConfirmChoiceView confirmChoice;
@@ -35,184 +16,389 @@ public class GameController : MonoBehaviour
     [SerializeField] private RoundResultsView roundResultsView;
     [SerializeField] private AnnouncementsView announcementsView;
 
-    // Event bindings
-    private EventBinding<SelectedDiceType> _selectedDiceBinding;
-    private EventBinding<StakeRoll> _stakeRollBinding;
+    #endregion
+
+    #region State
 
     private bool _isMyTurn = false;
-    private int _myPlayerIndex = -1;
+    private int _currentTurnClientId = -1;
+
+    private Dictionary<int, bool> _lastSelectableDice = new();
+
+    #endregion
+
+    #region Event Bindings
+
+    private EventBinding<SelectedDiceType> selectedDiceBinding;
+    private EventBinding<StakeRoll> stakeRollBinding;
+
+    #endregion
+
+    #region Unity Lifecycle
 
     private void Start()
     {
-        if (!ValidateReferences()) return;
-        SubscribeEvents();
-        SubscribeOSC();
+        if (!ValidateReferences())
+            return;
+
+        RegisterUIEvents();
+        RegisterServerMessages();
+        RegisterButtons();
+
+        view.SetTurnIndicator(false);
+        view.EnableDiceSelection(false);
+
+        SendGameSceneReady();
     }
 
     private void OnDestroy()
     {
-        UnsubscribeEvents();
-        UnsubscribeOSC();
+        UnregisterUIEvents();
+        UnregisterServerMessages();
+        UnregisterButtons();
     }
 
+    #endregion
 
     #region Setup
+
     private bool ValidateReferences()
     {
-        if (view == null) view = GetComponent<GameView>();
-        if (confirmChoice == null) confirmChoice = FindFirstObjectByType<ConfirmChoiceView>();
-        if (rollAgainView == null) rollAgainView = FindFirstObjectByType<RollAgainView>();
-        if (roundResultsView == null) roundResultsView = FindFirstObjectByType<RoundResultsView>();
-        if (announcementsView == null) announcementsView = FindFirstObjectByType<AnnouncementsView>();
+        if (Client.Instance == null)
+        {
+            Debug.LogError("Client instance missing!");
+            return false;
+        }
 
-        bool ok = true;
-        if (view == null) { Debug.LogError("GameView missing"); ok = false; }
-        if (confirmChoice == null) { Debug.LogError("ConfirmChoiceView missing"); ok = false; }
-        if (rollAgainView == null) { Debug.LogError("RollAgainView missing"); ok = false; }
-        if (roundResultsView == null) { Debug.LogError("RoundResultsView missing"); ok = false; }
-        if (announcementsView == null) { Debug.LogError("AnnouncementsView missing"); ok = false; }
-        return ok;
+        if (view == null)
+            view = GetComponent<GameView>();
+
+        if (confirmChoice == null)
+            confirmChoice = FindFirstObjectByType<ConfirmChoiceView>();
+
+        if (rollAgainView == null)
+            rollAgainView = FindFirstObjectByType<RollAgainView>();
+
+        if (roundResultsView == null)
+            roundResultsView = FindFirstObjectByType<RoundResultsView>();
+
+        if (announcementsView == null)
+            announcementsView = FindFirstObjectByType<AnnouncementsView>();
+
+        bool valid = true;
+
+        if (view == null)
+        {
+            Debug.LogError("GameView missing");
+            valid = false;
+        }
+
+        if (rollAgainView == null)
+        {
+            Debug.LogError("RollAgainView missing");
+            valid = false;
+        }
+
+        if (roundResultsView == null)
+        {
+            Debug.LogError("RoundResultsView missing");
+            valid = false;
+        }
+
+        if (announcementsView == null)
+        {
+            Debug.LogError("AnnouncementsView missing");
+            valid = false;
+        }
+
+        return valid;
     }
 
-    private void SubscribeEvents()
-    {
-        _selectedDiceBinding = new EventBinding<SelectedDiceType>(OnSelectedDice);
-        EventBus<SelectedDiceType>.Subscribe(_selectedDiceBinding);
+    #endregion
 
-        _stakeRollBinding = new EventBinding<StakeRoll>(OnStakeChoice);
-        EventBus<StakeRoll>.Subscribe(_stakeRollBinding);
+    #region Event Registration
+
+    private void RegisterUIEvents()
+    {
+        selectedDiceBinding = new EventBinding<SelectedDiceType>(OnSelectedDice);
+        stakeRollBinding = new EventBinding<StakeRoll>(OnStakeChoice);
+
+        EventBus<SelectedDiceType>.Subscribe(selectedDiceBinding);
+        EventBus<StakeRoll>.Subscribe(stakeRollBinding);
     }
 
-    private void UnsubscribeEvents()
+    private void UnregisterUIEvents()
     {
-        EventBus<SelectedDiceType>.Unsubscribe(_selectedDiceBinding);
-        EventBus<StakeRoll>.Unsubscribe(_stakeRollBinding);
+        if (selectedDiceBinding != null)
+            EventBus<SelectedDiceType>.Unsubscribe(selectedDiceBinding);
+
+        if (stakeRollBinding != null)
+            EventBus<StakeRoll>.Unsubscribe(stakeRollBinding);
     }
 
-    private void SubscribeOSC()
+    private void RegisterServerMessages()
     {
-        var client = Client.Instance;
-        if (client == null) return;
+        Client client = Client.Instance;
 
         client.AddListener(Msg.S_YOUR_TURN, OnYourTurn, OSCUtil.STRING);
+        client.AddListener(Msg.S_TURN_STARTED, OnTurnStarted, OSCUtil.INT, OSCUtil.STRING);
         client.AddListener(Msg.S_DICE_ROLLED, OnDiceRolled);
+        client.AddListener(Msg.S_TURN_OPTIONS, OnTurnOptions);
+        client.AddListener(Msg.S_DICE_SELECTED, OnDiceSelected, OSCUtil.INT);
         client.AddListener(Msg.S_GAME_STATE, OnGameState);
         client.AddListener(Msg.S_GAME_ANNOUNCEMENT, OnAnnouncement, OSCUtil.STRING);
         client.AddListener(Msg.S_ROUND_RESULTS, OnRoundResults, OSCUtil.STRING);
-        client.AddListener(Msg.S_STAKE_PROMPT, OnStakePrompt, OSCUtil.BOOL, OSCUtil.STRING);
+        client.AddListener(Msg.S_STAKE_PROMPT, OnStakePrompt);
+        client.AddListener(Msg.S_INVALID_MOVE, OnInvalidMove, OSCUtil.STRING);
         client.AddListener(Msg.S_GAME_END, OnGameEnd, OSCUtil.STRING);
-
-        view.disconnectButton.onClick.AddListener(() => client.Disconnect());
     }
 
-    private void UnsubscribeOSC()
+    private void UnregisterServerMessages()
     {
-        var client = Client.Instance;
-        if (client == null) return;
+        if (Client.Instance == null)
+            return;
+
+        Client client = Client.Instance;
 
         client.RemoveListener(Msg.S_YOUR_TURN, OnYourTurn);
+        client.RemoveListener(Msg.S_TURN_STARTED, OnTurnStarted);
         client.RemoveListener(Msg.S_DICE_ROLLED, OnDiceRolled);
+        client.RemoveListener(Msg.S_TURN_OPTIONS, OnTurnOptions);
+        client.RemoveListener(Msg.S_DICE_SELECTED, OnDiceSelected);
         client.RemoveListener(Msg.S_GAME_STATE, OnGameState);
         client.RemoveListener(Msg.S_GAME_ANNOUNCEMENT, OnAnnouncement);
         client.RemoveListener(Msg.S_ROUND_RESULTS, OnRoundResults);
         client.RemoveListener(Msg.S_STAKE_PROMPT, OnStakePrompt);
+        client.RemoveListener(Msg.S_INVALID_MOVE, OnInvalidMove);
         client.RemoveListener(Msg.S_GAME_END, OnGameEnd);
-
-        view.disconnectButton.onClick.RemoveListener(() => client.Disconnect());
     }
+
+    private void RegisterButtons()
+    {
+        if (view.disconnectButton != null)
+            view.disconnectButton.onClick.AddListener(OnDisconnectButtonClicked);
+    }
+
+    private void UnregisterButtons()
+    {
+        if (view != null && view.disconnectButton != null)
+            view.disconnectButton.onClick.RemoveListener(OnDisconnectButtonClicked);
+    }
+
     #endregion
 
-    #region OSC Handlers
+    #region Received Messages
 
     private void OnYourTurn(OSCMessageIn msg, IPEndPoint sender)
     {
         string message = msg.ReadString();
+
         announcementsView.ShowAnnouncement(message);
-        _isMyTurn = message.Contains("your turn") || message.Contains(Client.Instance.Username);
+    }
+    private void OnTurnStarted(OSCMessageIn msg, IPEndPoint sender)
+    {
+        int currentPlayerId = msg.ReadInt();
+        string currentPlayerName = msg.ReadString();
+
+        _currentTurnClientId = currentPlayerId;
+        _isMyTurn = Client.Instance.ClientId == currentPlayerId;
+
+        _lastSelectableDice.Clear();
+
+        view.ClearTurnDiceZones();
         view.SetTurnIndicator(_isMyTurn);
-        if (_isMyTurn)
-            view.EnableDiceSelection(true);
+        view.SyncTurnStats(0, 0, 0, false);
+
+        announcementsView.ShowAnnouncement($"{currentPlayerName}'s turn.");
     }
     private void OnDiceRolled(OSCMessageIn msg, IPEndPoint sender)
     {
+        int currentPlayerId = msg.ReadInt();
 
-        //TODO: if Count is -1 Means selection failed and we need to select a dice again. Show msg select new dice.
-        int count = msg.ReadInt();
+        _currentTurnClientId = currentPlayerId;
+        _isMyTurn = Client.Instance.ClientId == currentPlayerId;
+
+        Client.Log("Game", $"Dice rolled owner={currentPlayerId}, myId={Client.Instance.ClientId}");
+
+        int diceCount = msg.ReadInt();
+
         List<int> dice = new List<int>();
-        for (int i = 0; i < count; i++)
+
+        for (int i = 0; i < diceCount; i++)
             dice.Add(msg.ReadInt());
 
-        view.GenerateRollingZoneDice(dice);
-        view.EnableDiceSelection(_isMyTurn);
-    }
+        int turnPoints = msg.ReadInt();
+        int defense = msg.ReadInt();
+        int attack = msg.ReadInt();
+        bool doubleStakeActive = msg.ReadBool();
 
-    private void OnRoundResults(OSCMessageIn msg, IPEndPoint sender)
-    {
-        string result = msg.ReadString();
-        EventBus<RoundResults>.Publish(new RoundResults(result));
+        _lastSelectableDice.Clear();
+
+        view.GenerateRollingZoneDice(dice);
+        view.EnableDiceSelection(false);
+        view.SetTurnIndicator(_isMyTurn);
+        view.SyncTurnStats(turnPoints, defense, attack, doubleStakeActive);
     }
-    private void OnAnnouncement(OSCMessageIn msg, IPEndPoint sender)
+    private void OnDiceSelected(OSCMessageIn msg, IPEndPoint sender)
     {
-        string text = msg.ReadString();
-        announcementsView.ShowAnnouncement(text);
+        int diceType = msg.ReadInt();
+
+        view.MoveSelectedDiceToZone(diceType);
+        view.PredictSelectedDiceStats(diceType);
+    }
+    private void OnTurnOptions(OSCMessageIn msg, IPEndPoint sender)
+    {
+        _isMyTurn = true;
+        Client.Log("Game", "Received turn options. This client is current player.");
+        int selectableCount = msg.ReadInt();
+
+        Dictionary<int, bool> selectableDice = new Dictionary<int, bool>();
+
+        for (int i = 0; i < selectableCount; i++)
+        {
+            int diceType = msg.ReadInt();
+            bool isSelectable = msg.ReadBool();
+
+            selectableDice[diceType] = isSelectable;
+        }
+
+        _lastSelectableDice = selectableDice;
+
+        view.SetTurnIndicator(true);
+        view.SetDiceSelectable(selectableDice, true);
     }
 
     private void OnGameState(OSCMessageIn msg, IPEndPoint sender)
     {
         int currentTurnIndex = msg.ReadInt();
         int playerCount = msg.ReadInt();
+
         view.ClearUsers();
 
-        string myName = Client.Instance.Username;
         for (int i = 0; i < playerCount; i++)
         {
             string name = msg.ReadString();
             int points = msg.ReadInt();
-            view.UpdateOrAddUser(name, points);
-            if (name == myName)
-                _isMyTurn = (i == currentTurnIndex);
-        }
-        view.SetTurnIndicator(_isMyTurn);
 
-        //TODO: View.RolledDice(int[] dice);-> Moves Tanks to Defene Line,
-        // TODO: IF selected UFOS or dice add them to the Defense or Point bar.
+            view.UpdateOrAddUser(name, points);
+        }
+    }
+
+    private void OnAnnouncement(OSCMessageIn msg, IPEndPoint sender)
+    {
+        string text = msg.ReadString();
+
+        announcementsView.ShowAnnouncement(text);
+    }
+
+    private void OnRoundResults(OSCMessageIn msg, IPEndPoint sender)
+    {
+        string result = msg.ReadString();
+
+        EventBus<RoundResults>.Publish(new RoundResults(result));
     }
 
     private void OnStakePrompt(OSCMessageIn msg, IPEndPoint sender)
     {
-        bool canStake = msg.ReadBool();
-        string optionalMsg = msg.ReadString();
-        rollAgainView.Show(canStake, optionalMsg);
+        Client.Log("Game", "Stake prompt received.");
+
+        view.EnableDiceSelection(false);
+
+        if (rollAgainView == null)
+        {
+            Client.Log("[GameController] RollAgainView missing.");
+            return;
+        }
+
+        rollAgainView.Show();
+    }
+
+    private void OnInvalidMove(OSCMessageIn msg, IPEndPoint sender)
+    {
+        string reason = msg.ReadString();
+
+        announcementsView.ShowAnnouncement(reason);
+
+        if (_isMyTurn)
+            view.SetDiceSelectable(_lastSelectableDice, true);
     }
 
     private void OnGameEnd(OSCMessageIn msg, IPEndPoint sender)
     {
-        string winnerMsg = msg.ReadString();
-        announcementsView.ShowAnnouncement(winnerMsg);
-        // Optionally go back to lobby after a delay
+        string winnerMessage = msg.ReadString();
+
+        announcementsView.ShowAnnouncement(winnerMessage);
+
+        view.EnableDiceSelection(false);
+        rollAgainView.Hide();
+
         Invoke(nameof(ReturnToLobby), 3f);
     }
-    private void ReturnToLobby()
-    {
-        SceneManager.LoadScene(Scenes.Lobby);
-    }
+
     #endregion
 
-    #region UI Event Handlers (via EventBus)
+    #region UI Events
+
     private void OnSelectedDice(SelectedDiceType e)
     {
-        if (!_isMyTurn) return;
-        var msg = new OSCMessageOut(Msg.C_SELECT_DICE).AddInt(e.diceType);
-        Client.Instance.Send(msg);
-        view.EnableDiceSelection(false); // disable until server responds
+        SendSelectDice(e.diceType);
     }
 
     private void OnStakeChoice(StakeRoll e)
     {
-        if (!_isMyTurn) return;
-        var msg = new OSCMessageOut(Msg.C_STAKE_ANSWER).AddBool(e.doReRoll);
+        SendStakeAnswer(e.doReRoll);
+    }
+
+    private void OnDisconnectButtonClicked()
+    {
+        Client.Instance.Disconnect();
+    }
+
+    #endregion
+
+    #region Sending Messages
+    private void SendGameSceneReady()
+    {
+        var msg = new OSCMessageOut(Msg.C_GAME_SCENE_READY);
+
         Client.Instance.Send(msg);
+
+        Client.Log("Game", "Sent game scene ready.");
+    }
+    private void SendSelectDice(int diceType)
+    {
+        if (!_isMyTurn)
+            return;
+
+        var msg = new OSCMessageOut(Msg.C_SELECT_DICE)
+            .AddInt(diceType);
+
+        Client.Instance.Send(msg);
+
+        view.EnableDiceSelection(false);
+    }
+
+    private void SendStakeAnswer(bool doReRoll)
+    {
+        if (!_isMyTurn)
+            return;
+
+        var msg = new OSCMessageOut(Msg.C_STAKE_ANSWER)
+            .AddBool(doReRoll);
+
+        Client.Instance.Send(msg);
+
         rollAgainView.Hide();
     }
+
+    #endregion
+
+    #region Helpers
+
+    private void ReturnToLobby()
+    {
+        SceneManager.LoadScene(Scenes.Lobby);
+    }
+
     #endregion
 }

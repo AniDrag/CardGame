@@ -1,5 +1,4 @@
-﻿using CreeperDice_Net_Proj;
-using CreeperDice_Net_Proj.Model;
+﻿using CreeperDice_Net_Proj.Model;
 
 class Program
 {

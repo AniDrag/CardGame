@@ -1,104 +1,165 @@
 using AniDrag.EventBus;
-using System;
 using System.Collections.Generic;
-using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using UnityEngine.UI;
 
-/// <summary>
-/// This works as intended. it swithes image depending on type and sensd the controller the info needed when pressed
-/// Should be subbed to enable clikc depending if it is ur turn it will be interactibel else it will be uninteractible since ur not on turn.
-/// </summary>
 public class DiceView : MonoBehaviour
 {
-    private Button diceBtn;
-    private Image diceImage;
-    [SerializeField]private DiceType diceType;
+    #region View References
 
-    [Header("Debug")]
-    [SerializeField,Range(-1,4)] int testInt = -1;
-    [SerializeField] bool selectibility = false;
+    [SerializeField] private Button diceButton;
+    [SerializeField] private Image diceImage;
 
+    #endregion
+
+    #region Dice Data
+
+    [SerializeField] private DiceType diceType;
     [SerializeField] private List<Sprite> possibleImages = new();
-    
-    public void EnableBtn(bool enable)
-    {
-        if (enable && diceType != DiceType.Tank)
-        {
-            diceBtn.interactable = true;
 
-        }
+    public int TypeIndex => (int)diceType;
+
+    #endregion
+
+    #region Unity Lifecycle
+
+    private void OnDisable()
+    {
+        UnregisterButtons();
     }
-    public void Initialize(int typeIndex, bool isSelectible = false)
-    {
-        diceBtn = this.transform.GetChild(0).GetComponent<Button>();
-        diceImage = GetComponent<Image>();
-        diceBtn.onClick.AddListener(Debug_WasPressed);
-        switch (typeIndex)
-        {
-            case 0:diceType = DiceType.Human;   break;
-            case 1:diceType = DiceType.Cow;     break;
-            case 2:diceType = DiceType.Chicken; break;
-            case 3:diceType = DiceType.Tank;    break;
-            case 4:diceType = DiceType.UFO;     break;
-            default: diceType = DiceType.Error; break;
-        }
 
-        if (isSelectible )
-        {
-            EnableBtn(isSelectible);
-            diceBtn.onClick.AddListener(OnPress);
-            
-        }
+    #endregion
+
+    #region Setup
+
+    public void Initialize(int typeIndex, bool isSelectable = false)
+    {
+        FindReferences();
+
+        diceType = ConvertIndexToDiceType(typeIndex);
+
         SelectImage(typeIndex);
+        RegisterButtons();
+        SetSelectable(isSelectable);
     }
 
-    void OnPress()
+    private void FindReferences()
+    {
+        if (diceButton == null)
+            diceButton = GetComponentInChildren<Button>(true);
+
+        if (diceImage == null)
+        {
+            // Prefer the button image, because in your prefab the visible white square is probably the button.
+            if (diceButton != null)
+                diceImage = diceButton.GetComponent<Image>();
+
+            // Fallback to root image.
+            if (diceImage == null)
+                diceImage = GetComponent<Image>();
+        }
+
+        if (diceButton == null)
+            Client.Log("[DiceView] Missing Button on " + gameObject.name);
+
+        if (diceImage == null)
+            Client.Log("[DiceView] Missing Image on " + gameObject.name);
+    }
+
+    #endregion
+
+    #region Button Registration
+
+    private void RegisterButtons()
+    {
+        if (diceButton == null)
+            return;
+
+        diceButton.onClick.RemoveListener(OnPressed);
+        diceButton.onClick.AddListener(OnPressed);
+    }
+
+    private void UnregisterButtons()
+    {
+        if (diceButton == null)
+            return;
+
+        diceButton.onClick.RemoveListener(OnPressed);
+    }
+
+    #endregion
+
+    #region Public Controls
+
+    public void SetSelectable(bool selectable)
+    {
+        if (diceButton == null)
+            return;
+
+        bool canSelect = selectable && diceType != DiceType.Tank && diceType != DiceType.Error;
+        diceButton.interactable = canSelect;
+    }
+
+    #endregion
+
+    #region UI Events
+
+    private void OnPressed()
     {
         EventBus<SelectedDiceType>.Publish(new SelectedDiceType((int)diceType));
     }
 
-    void SelectImage(int type)  // 'type' comes from server, 0..4
+    #endregion
+
+    #region Visuals
+
+    private void SelectImage(int typeIndex)
     {
-        // Validate range (since server could send garbage)
-        if (type < 0 || type >= System.Enum.GetValues(typeof(DiceType)).Length)
+        if (diceImage == null)
+            return;
+
+        if (possibleImages == null || possibleImages.Count == 0)
         {
-            Client.Log("Debug", $"Invalid die type index from server: {type}");
+            Client.Log("[DiceView] possibleImages list is empty on prefab: " + gameObject.name);
             return;
         }
 
-        // Cast the int directly to the enum – works because enum values match server ints
-        diceType = (DiceType)type;
-
-        // Use the same int as sprite index (assuming possibleImages order matches server ints)
-        if (type >= possibleImages.Count)
+        if (typeIndex < 0 || typeIndex >= possibleImages.Count)
         {
-            Client.Log("Debug", $"Missing sprite for index {type}");
+            Client.Log($"[DiceView] Missing sprite for dice index {typeIndex}. Sprite count: {possibleImages.Count}");
             return;
         }
 
-        diceImage.sprite = possibleImages[type];
+        diceImage.sprite = possibleImages[typeIndex];
+        diceImage.preserveAspect = true;
     }
-    [AniDrag.Utility.Button]
-    void DebugCheck_IMGCHANGE()
+
+    #endregion
+
+    #region Helpers
+
+    private DiceType ConvertIndexToDiceType(int typeIndex)
     {
-        Initialize(testInt, selectibility);
+        switch (typeIndex)
+        {
+            case 0: return DiceType.Human;
+            case 1: return DiceType.Cow;
+            case 2: return DiceType.Chicken;
+            case 3: return DiceType.Tank;
+            case 4: return DiceType.UFO;
+            default: return DiceType.Error;
+        }
     }
-    void Debug_WasPressed()
-    {
-        Debug.Log($"I was pressed {(int)diceType}!");
-    }
-    private void OnDisable()
-    {
-        diceBtn.onClick.RemoveAllListeners();
-    }
+
+    #endregion
 }
 
-public enum DiceType { 
-    Human,      // idx: 0 -> is a pt
-    Cow,        // idx: 1 -> is a pt
-    Chicken,    // idx: 2 -> is a pt
-    Tank,       // idx: 3 -> is a danger / enemy
-    UFO,         // idx: 4 -> is a defense / Attack power
-    Error
+public enum DiceType
+{
+    Human = 0,
+    Cow = 1,
+    Chicken = 2,
+    Tank = 3,
+    UFO = 4,
+    Error = 5
 }

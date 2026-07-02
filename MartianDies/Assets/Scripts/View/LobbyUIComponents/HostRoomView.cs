@@ -1,64 +1,103 @@
 using AniDrag.EventBus;
-using System;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class HostRoomView : MonoBehaviour
 {
+    #region View References
+
     [SerializeField] private TMP_Text roomDetailsText;
     [SerializeField] private Button startGame;
     [SerializeField] private Button closeRoom;
 
-    EventBinding<UpdateRoomParticipants> updateRoomParticipantsBinding;
-    EventBinding<RoomCreated> roomCreatedBinding;
+    #endregion
 
-    string _roomName;
-    int _points;
-    int participants;
+    #region State
+
+    private RoomDataModel roomData;
+
+    #endregion
+
+    #region Unity Lifecycle
 
     private void OnEnable()
     {
-        if (startGame == null) { Debug.LogError("startGame button is NULL!"); return; }
-        if (closeRoom == null) { Debug.LogError("closeRoom button is NULL!"); return; }
-
-        startGame.onClick.AddListener(() => { Debug.Log("Start Game button clicked"); EventBus<StartGame>.Publish(new StartGame()); });
-        closeRoom.onClick.AddListener(() => { Debug.Log("Close Room button clicked"); EventBus<CloseHostedRoom>.Publish(new CloseHostedRoom()); });
-
-        updateRoomParticipantsBinding = new EventBinding<UpdateRoomParticipants>(UpdateParticipantsInRoom);
-        EventBus<UpdateRoomParticipants>.Subscribe(updateRoomParticipantsBinding);
-        roomCreatedBinding = new EventBinding<RoomCreated>(OnCreate);
-        EventBus<RoomCreated>.Subscribe(roomCreatedBinding);
-
-
+        RegisterButtons();
     }
-
 
     private void OnDisable()
     {
+        UnregisterButtons();
+    }
+
+    #endregion
+
+    #region Registration
+
+    private void RegisterButtons()
+    {
         if (startGame != null)
-            startGame.onClick.RemoveListener(EventBus_Publish_StartGame);
+            startGame.onClick.AddListener(OnStartGameButtonClicked);
+
         if (closeRoom != null)
-            closeRoom.onClick.RemoveListener(EventBus_Publish_CloseHostedRoom);
-
-        EventBus<UpdateRoomParticipants>.Unsubscribe(updateRoomParticipantsBinding);
-        
+            closeRoom.onClick.AddListener(OnCloseRoomButtonClicked);
     }
 
-    public void OnCreate(RoomCreated e)
+    private void UnregisterButtons()
     {
-        _roomName = e.data.roomName;
-        _points = e.data.pointGoal;
-        participants = 1;
+        if (startGame != null)
+            startGame.onClick.RemoveListener(OnStartGameButtonClicked);
 
-        roomDetailsText.text = $"{_roomName}\n {participants} / 4\nPonit Goal: {_points}";
+        if (closeRoom != null)
+            closeRoom.onClick.RemoveListener(OnCloseRoomButtonClicked);
     }
-    public void UpdateParticipantsInRoom(UpdateRoomParticipants e)
+
+    #endregion
+
+    #region UI Events
+
+    private void OnStartGameButtonClicked()
     {
-        participants = e.participants;
-        roomDetailsText.text = $"{_roomName}\n {participants} / 4\nPonit Goal: {_points}";
+        Debug.Log("Start Game button clicked");
+        EventBus<StartGame>.Publish(new StartGame());
     }
 
-    void EventBus_Publish_StartGame() => EventBus<StartGame>.Publish(new StartGame());
-    void EventBus_Publish_CloseHostedRoom() => EventBus<CloseHostedRoom>.Publish(new CloseHostedRoom());
+    private void OnCloseRoomButtonClicked()
+    {
+        Debug.Log("Close Room button clicked");
+        EventBus<CloseHostedRoom>.Publish(new CloseHostedRoom());
+    }
+
+    #endregion
+
+    #region Display
+
+    public void SetRoomData(RoomDataModel data)
+    {
+        roomData = data;
+        UpdateDisplay();
+    }
+
+    public void UpdateParticipants(int participants)
+    {
+        if (roomData == null)
+            return;
+
+        roomData.participantCount = participants;
+        UpdateDisplay();
+    }
+
+    private void UpdateDisplay()
+    {
+        if (roomData == null || roomDetailsText == null)
+            return;
+
+        roomDetailsText.text =
+            $"{roomData.roomName}\n" +
+            $"{roomData.participantCount} / 4\n" +
+            $"Point Goal: {roomData.pointGoal}";
+    }
+
+    #endregion
 }

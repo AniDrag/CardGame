@@ -24,12 +24,14 @@ namespace CreeperDice_Net_Proj.Model
             _thread = new Thread(Run);
             _thread.IsBackground = true;
             _thread.Start();
+            Console.WriteLine("Commands start with '/'. Type /help");
         }
 
         public void Stop()
         {
             _running = false;
             _thread?.Join(1000);
+
         }
 
         private void Run()

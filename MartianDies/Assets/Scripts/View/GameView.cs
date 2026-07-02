@@ -1,4 +1,3 @@
-using AniDrag.EventBus;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -6,16 +5,18 @@ using UnityEngine.UI;
 
 public class GameView : MonoBehaviour
 {
+    #region View References
+
     [Header("Disconnect")]
-    [field:SerializeField] public Button disconnectButton { get; private set; }
+    [field: SerializeField] public Button disconnectButton { get; private set; }
 
     [Header("Users")]
     [SerializeField] private Transform usersPanel;
     [SerializeField] private GameObject userTabPrefab;
 
     [Header("Dice Fields")]
-    [SerializeField] private Transform rollingZone;   // all dice shown here initially
-    [SerializeField] private Transform offenseZone;   // selected dice placed? not needed for basic
+    [SerializeField] private Transform rollingZone;
+    [SerializeField] private Transform offenseZone;
     [SerializeField] private Transform defenseZone;
     [SerializeField] private Transform pointZone;
     [SerializeField] private GameObject dicePrefab;
@@ -23,127 +24,303 @@ public class GameView : MonoBehaviour
     [Header("Turn Indicator")]
     [SerializeField] private TMP_Text turnText;
 
-    private Dictionary<string, UserView> userViews = new();
+    [Header("Turn Stats")]
+    [SerializeField] private TMP_Text turnPointsText;
+    [SerializeField] private TMP_Text defenseText;
+    [SerializeField] private TMP_Text attackText;
+    [SerializeField] private TMP_Text doubleStakeText;
 
 
-    // Bindings
-    private EventBinding<SelectDiceReplie> selectDiceReplieBinding;
+    private int predictedTurnPoints;
+    private int predictedDefense;
+    private int predictedAttack;
+    private bool predictedDoubleStakeActive;
+    #endregion
+
+    #region State
+
+    private readonly Dictionary<string, UserView> userViews = new();
+
+    #endregion
+
+    #region Turn Display
 
     public void SetTurnIndicator(bool isYourTurn)
     {
+        if (turnText == null)
+            return;
+
         turnText.text = isYourTurn ? "Your Turn!" : "Waiting for opponent...";
         turnText.color = isYourTurn ? Color.green : Color.red;
     }
-    //Debug
-    private string GetDieSymbol(int val)
+
+    public void UpdateTurnStats(int turnPoints, int defense, int attack, bool doubleStakeActive)
     {
-        switch (val)
-        {
-            case 0: return "human";// got these images actualy pretty nice to have em
-            case 1: return "Cow";
-            case 2: return "Chicken";
-            case 3: return "Tank"; // tank emoji approximation
-            case 4: return "UFO";
-            default: return "ERROR";
-        }
+        if (turnPointsText != null)
+            turnPointsText.text = $"PT:\n {turnPoints}";
+
+        if (defenseText != null)
+            defenseText.text = $"DEF:\n {defense}";
+
+        if (attackText != null)
+            attackText.text = $"ATK:\n {attack}";
+
+        if (doubleStakeText != null)
+            doubleStakeText.text = doubleStakeActive ? "Double Stake Active: On" : "Double Stake Active: Off";
     }
+
+    #endregion
+
+    #region Users
 
     public void ClearUsers()
     {
-        foreach (Transform child in usersPanel) Destroy(child.gameObject);
-        userViews.Clear();
-    }
-    // When user Data is updateed aka on Round results, Leave room. No one can join mid game.
-    public void UpdateOrAddUser(string username, int points)
-    {
-        if (userViews.TryGetValue(username, out var uv)) uv.UpdateUserPoints(points);
-        else
-        {
-            GameObject go = Instantiate(userTabPrefab, usersPanel);
-            var view = go.GetComponent<UserView>();
-            view.Initialized(username, 25, points);
-            userViews[username] = view;
-        }
-    }
-    /// <summary>
-    /// On Dice Rolled. Shows the dice rolled Filters Danger Dice.
-    /// </summary>
-    /// <param name="diceValues"></param>
-    public void GenerateRollingZoneDice(List<int> diceValues)
-    {
-        foreach (Transform child in rollingZone)
+        foreach (Transform child in usersPanel)
             Destroy(child.gameObject);
 
-        for (int i = 0; i < diceValues.Count; i++)
+        userViews.Clear();
+    }
+
+    public void UpdateOrAddUser(string username, int points)
+    {
+        if (userViews.TryGetValue(username, out UserView existingView))
         {
-            if(diceValues[i] < 0 || diceValues[i] > 4)
+            existingView.UpdateUserPoints(points);
+            return;
+        }
+
+        GameObject go = Instantiate(userTabPrefab, usersPanel);
+
+        UserView userView = go.GetComponent<UserView>();
+        userView.Initialize(username, 25, points);
+
+        userViews[username] = userView;
+    }
+
+    #endregion
+
+    #region Dice Generation
+
+    public void GenerateRollingZoneDice(List<int> diceValues)
+    {
+        ClearZone(rollingZone);
+
+        foreach (int diceValue in diceValues)
+        {
+            if (!IsValidDiceIndex(diceValue))
             {
-                Client.Log("[GameView] | Error |, dice index incorrect fot FUNC: Generate Rolled Dice. Incorrect use of fuction or malicious intent passed \n IDX: " + diceValues[i]);
-            }
-            if (diceValues[i] == 3)
-            {
-                GenerateCombatZoneDice(3);
+                Client.Log("[GameView] Invalid dice index: " + diceValue);
                 continue;
             }
-            GameObject dice = Instantiate(dicePrefab, rollingZone);
-            dice.GetComponent<DiceView>().Initialize(diceValues[i], diceValues[i] != 3);
-        }
-    }
-    /// <summary>
-    /// If 3 instantiate in Ofense zone else if is 4 instantiate in Defense zone.
-    /// Called On select dice results answer
-    /// </summary>
-    /// <param name="idx"></param>
-    public void GenerateCombatZoneDice(int idx)
-    {
-        if (idx == 3)
-        {
-            GameObject dice = Instantiate(dicePrefab, offenseZone);
-            dice.GetComponent<DiceView>().Initialize(idx);
-        }
-        else if (idx == 4)
-        {
-            GameObject dice = Instantiate(dicePrefab, defenseZone);
-            dice.GetComponent<DiceView>().Initialize(idx);
-        }
-        else
-            Client.Log("[GameView] | Error |, dice index incorrect fot FUNC: Generate Combat Dice. Incorrect use of fuction or malicious intent passed \n IDX: " + idx);
 
-    }
-    /// <summary>
-    /// Called On select dice results answer and we allocate points here.
-    /// </summary>
-    /// <param name="idx"></param>
-    public void GeneratePointDice(int idx)
-    {
-        if (idx < 3 && idx > 0)
-        {
-            GameObject dice = Instantiate(dicePrefab, pointZone);
-            dice.GetComponent<DiceView>().Initialize(idx);
+            if (diceValue == (int)DiceType.Tank)
+            {
+                GenerateCombatZoneDice(diceValue);
+                continue;
+            }
+
+            GameObject dice = Instantiate(dicePrefab, rollingZone);
+
+            DiceView diceView = dice.GetComponent<DiceView>();
+            diceView.Initialize(diceValue, false);
         }
-        else
-            Client.Log("[GameView] | Error |, dice index incorrect fot FUNC: Generate Point Dice. Incorrect use of fuction or malicious intent passed \n IDX: " + idx);
     }
+
+    public void GenerateCombatZoneDice(int diceType)
+    {
+        if (diceType != (int)DiceType.Tank && diceType != (int)DiceType.UFO)
+        {
+            Client.Log("[GameView] Invalid combat dice index: " + diceType);
+            return;
+        }
+
+        Transform targetZone = diceType == (int)DiceType.Tank
+            ? offenseZone
+            : defenseZone;
+
+        GameObject dice = Instantiate(dicePrefab, targetZone);
+
+        DiceView diceView = dice.GetComponent<DiceView>();
+        diceView.Initialize(diceType, false);
+    }
+
+    public void MoveSelectedDiceToZone(int diceType)
+    {
+        if (diceType == (int)DiceType.Tank)
+        {
+            Client.Log("[GameView] Server confirmed tank selection, but tanks should not be selectable.");
+            return;
+        }
+
+        List<Transform> diceToMove = FindRolledDiceOfType(diceType);
+
+        foreach (Transform diceTransform in diceToMove)
+        {
+            DiceView diceView = diceTransform.GetComponent<DiceView>();
+
+            if (diceView != null)
+                diceView.SetSelectable(false);
+
+            if (IsPointDice(diceType))
+            {
+                diceTransform.SetParent(pointZone, false);
+            }
+            else if (diceType == (int)DiceType.UFO)
+            {
+                diceTransform.SetParent(defenseZone, false);
+            }
+        }
+    }
+
+    public void GeneratePointDice(int diceType)
+    {
+        if (!IsPointDice(diceType))
+        {
+            Client.Log("[GameView] Invalid point dice index: " + diceType);
+            return;
+        }
+
+        GameObject dice = Instantiate(dicePrefab, pointZone);
+
+        DiceView diceView = dice.GetComponent<DiceView>();
+        diceView.Initialize(diceType, false);
+    }
+
+    #endregion
+
+    #region Dice Selection
 
     public void EnableDiceSelection(bool enable)
     {
         foreach (Transform child in rollingZone)
         {
             DiceView dice = child.GetComponent<DiceView>();
-            dice.EnableBtn(enable);
+
+            if (dice != null)
+                dice.SetSelectable(enable);
         }
     }
 
-    public void OnDiceSelection(SelectDiceReplie e)
+    public void SetDiceSelectable(Dictionary<int, bool> selectableDice, bool isMyTurn)
     {
-        if (e.allowed)
+        foreach (Transform child in rollingZone)
         {
+            DiceView dice = child.GetComponent<DiceView>();
 
-        }
-        else
-        {
-            EventBus<GameAnnouncment>.Publish(new GameAnnouncment("Invalid Dice selection! Malicious intent Detected, Do not cheat Strike 1/2"));
+            if (dice == null)
+                continue;
+
+            bool canSelect = false;
+
+            if (isMyTurn && selectableDice.TryGetValue(dice.TypeIndex, out bool selectable))
+                canSelect = selectable;
+
+            dice.SetSelectable(canSelect);
         }
     }
 
+    #endregion
+
+    #region Clearing
+
+    public void ClearTurnDiceZones()
+    {
+        ClearZone(rollingZone);
+        ClearZone(offenseZone);
+        ClearZone(defenseZone);
+        ClearZone(pointZone);
+    }
+
+    private void ClearZone(Transform zone)
+    {
+        if (zone == null)
+            return;
+
+        for (int i = zone.childCount - 1; i >= 0; i--)
+            Destroy(zone.GetChild(i).gameObject);
+    }
+
+    #endregion
+
+    #region Helpers
+    private bool IsPointDice(int diceType)
+    {
+        return diceType >= 0 && diceType <= 2;
+    }
+    private List<Transform> FindRolledDiceOfType(int diceType)
+    {
+        List<Transform> matches = new List<Transform>();
+
+        foreach (Transform child in rollingZone)
+        {
+            DiceView diceView = child.GetComponent<DiceView>();
+
+            if (diceView == null)
+                continue;
+
+            if (diceView.TypeIndex == diceType)
+                matches.Add(child);
+        }
+
+        return matches;
+    }
+
+    public void PredictSelectedDiceStats(int diceType)
+    {
+        int selectedCount = CountRolledDiceOfType(diceType);
+
+        if (IsPointDice(diceType))
+        {
+            predictedTurnPoints += selectedCount;
+        }
+        else if (diceType == (int)DiceType.UFO)
+        {
+            predictedDefense += selectedCount;
+        }
+
+        UpdateTurnStats(
+            predictedTurnPoints,
+            predictedDefense,
+            predictedAttack,
+            predictedDoubleStakeActive
+        );
+    }
+    public void SyncTurnStats(int turnPoints, int defense, int attack, bool doubleStakeActive)
+    {
+        predictedTurnPoints = turnPoints;
+        predictedDefense = defense;
+        predictedAttack = attack;
+        predictedDoubleStakeActive = doubleStakeActive;
+
+        UpdateTurnStats(turnPoints, defense, attack, doubleStakeActive);
+    }
+
+    private int CountRolledDiceOfType(int diceType)
+    {
+        int count = 0;
+
+        foreach (Transform child in rollingZone)
+        {
+            DiceView diceView = child.GetComponent<DiceView>();
+
+            if (diceView == null)
+                continue;
+
+            if (diceView.TypeIndex == diceType)
+                count++;
+        }
+
+        return count;
+    }
+
+    #endregion
+
+    #region Validation
+
+    private bool IsValidDiceIndex(int diceType)
+    {
+        return diceType >= 0 && diceType <= 4;
+    }
+
+    #endregion
 }
