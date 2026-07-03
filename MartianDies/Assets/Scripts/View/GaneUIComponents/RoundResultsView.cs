@@ -69,22 +69,24 @@ public class RoundResultsView : MonoBehaviour
 
     private void OnRoundResults(RoundResults e)
     {
-        ShowResults(e.msg);
+        Show(e.msg);
     }
 
     #endregion
 
     #region Display
 
-    private void ShowResults(string message)
+    private void Show(string message)
     {
         if (resultsText != null)
             resultsText.text = message;
-
+        if (panel == null)
+        {
+            Client.Log("RoundResultsView", "Panel reference missing. Using this gameObject.");
+            panel = transform.Find("Panel_RoundResults").gameObject;
+        }
         if (panel != null)
             panel.SetActive(true);
-        else
-            gameObject.SetActive(true);
 
         CancelInvoke(nameof(Hide));
         Invoke(nameof(Hide), 5f);
@@ -92,10 +94,13 @@ public class RoundResultsView : MonoBehaviour
 
     public void Hide()
     {
+        if (panel == null)
+        {
+            Client.Log("RoundResultsView", "Panel reference missing. Using this gameObject.");
+            panel = transform.Find("Panel_RoundResults").gameObject;
+        }
         if (panel != null)
             panel.SetActive(false);
-        else
-            gameObject.SetActive(false);
     }
 
     #endregion

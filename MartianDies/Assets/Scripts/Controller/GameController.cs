@@ -76,22 +76,22 @@ public class GameController : MonoBehaviour
             view = GetComponent<GameView>();
 
         if (confirmChoice == null)
-            confirmChoice = FindFirstObjectByType<ConfirmChoiceView>(FindObjectsInactive.Include);
+            confirmChoice = GetComponent<ConfirmChoiceView>();
 
         if (rollAgainView == null)
-            rollAgainView = FindFirstObjectByType<RollAgainView>(FindObjectsInactive.Include);
+            rollAgainView = GetComponent<RollAgainView>();
 
         if (roundResultsView == null)
-            roundResultsView = FindFirstObjectByType<RoundResultsView>(FindObjectsInactive.Include);
+            roundResultsView = GetComponent<RoundResultsView>();
 
         if (announcementsView == null)
-            announcementsView = FindFirstObjectByType<AnnouncementsView>(FindObjectsInactive.Include);
+            announcementsView = GetComponent<AnnouncementsView>();
 
         if (rollAgainView == null)
-            rollAgainView = FindFirstObjectByType<RollAgainView>(FindObjectsInactive.Include);
+            rollAgainView = GetComponent<RollAgainView>();
 
         if (gameOverView == null)
-            gameOverView = FindFirstObjectByType<GameOverView>(FindObjectsInactive.Include);
+            gameOverView = GetComponent<GameOverView>();
 
         bool valid = true;
 
@@ -227,7 +227,7 @@ public class GameController : MonoBehaviour
     {
         string message = msg.ReadString();
 
-        announcementsView.ShowAnnouncement(message);
+        announcementsView.Show(message);
     }
     private void OnTurnStarted(OSCMessageIn msg, IPEndPoint sender)
     {
@@ -243,7 +243,7 @@ public class GameController : MonoBehaviour
         view.SetTurnIndicator(_isMyTurn);
         view.SyncTurnStats(0, 0, 0, false);
 
-        announcementsView.ShowAnnouncement($"{currentPlayerName}'s turn.");
+        announcementsView.Show($"{currentPlayerName}'s turn.");
     }
     private void OnDiceRolled(OSCMessageIn msg, IPEndPoint sender)
     {
@@ -322,7 +322,7 @@ public class GameController : MonoBehaviour
     {
         string text = msg.ReadString();
 
-        announcementsView.ShowAnnouncement(text);
+        announcementsView.Show(text);
     }
 
     private void OnRoundResults(OSCMessageIn msg, IPEndPoint sender)
@@ -354,7 +354,7 @@ public class GameController : MonoBehaviour
     {
         string reason = msg.ReadString();
 
-        announcementsView.ShowAnnouncement(reason);
+        announcementsView.Show(reason);
 
         if (_isMyTurn)
             view.SetDiceSelectable(_lastSelectableDice, true);

@@ -14,17 +14,27 @@ public class ClientView : MonoBehaviour
     private void Start()
     {
         // Find UI elements (your existing find logic)
-        var btnTransform = transform.Find("btn_OpenConsole");
-        if (btnTransform != null) OpenConsoleBtn = btnTransform.GetComponent<Button>();
-        else Debug.LogError("Button 'btn_OpenConsole' not found!");
+        
+        if (OpenConsoleBtn == null)
+        {
+            var btnTransform = transform.Find("btn_OpenConsole")?.gameObject;
+            if (btnTransform != null) OpenConsoleBtn = btnTransform.GetComponent<Button>();
+            else Debug.LogError("Button 'btn_OpenConsole' not found!");
+        }
 
-        var btnTransformClose = transform.Find("btn_CloseConsole");
-        if (btnTransformClose != null) CloseConsoleBtn = btnTransformClose.GetComponent<Button>();
-        else Debug.LogError("Button 'btn_CloseConsole' not found!");
+        if (CloseConsoleBtn == null)
+        {
+            var btnTransformClose = transform.Find("btn_CloseConsole")?.gameObject;
+            if (btnTransformClose != null) CloseConsoleBtn = btnTransformClose.GetComponent<Button>();
+            else Debug.LogError("Button 'btn_CloseConsole' not found!");
+        } 
 
-        var panelTransform = transform.Find("Panel_Console");
-        if (panelTransform != null) ConsolePanel = panelTransform.gameObject;
-        else Debug.LogError("Panel 'Panel_Console' not found!");
+        if (ConsolePanel == null)
+        {
+            var panelTransform = transform.Find("Panel_Console")?.gameObject;
+            if (panelTransform != null) ConsolePanel = panelTransform;
+            else Debug.LogError("Panel 'Panel_Console' not found!");
+        }
 
         if (ConsolePanel != null)
         {

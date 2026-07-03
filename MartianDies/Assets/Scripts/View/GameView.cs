@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -198,15 +199,13 @@ public class GameView : MonoBehaviour
         {
             DiceView dice = child.GetComponent<DiceView>();
 
-            if (dice == null)
-                continue;
-
-            bool canSelect = false;
-
-            if (isMyTurn && selectableDice.TryGetValue(dice.TypeIndex, out bool selectable))
-                canSelect = selectable;
-
-            dice.SetSelectable(canSelect);
+            if (dice != null)
+            {
+                if (isMyTurn && selectableDice.TryGetValue(dice.TypeIndex, out bool selectable))
+                    dice.SetSelectable(selectable);
+                else
+                    dice.SetSelectable(false);
+            }
         }
     }
 

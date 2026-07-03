@@ -58,19 +58,26 @@ public class ConfirmChoiceView : MonoBehaviour
 
     #region Public Controls
 
-    public void Show(string question, System.Action<bool> callback)
+    public void Show()
     {
-        onChoice = callback;
+        if (panel == null)
+        {
+            Client.Log("RollAgainView", "Panel reference missing. Using this gameObject.");
+            panel = transform.Find("Panel_ConfirmDieChoice").gameObject;
+        }
 
-        if (questionText != null)
-            questionText.text = question;
+        panel.SetActive(true);
 
-        if (panel != null)
-            panel.SetActive(true);
+        Client.Log("ConfirmChoiceView", "Panel activated.");
     }
 
     public void Hide()
     {
+        if (panel == null)
+        {
+            Client.Log("RollAgainView", "Panel reference missing. Using this gameObject.");
+            panel = transform.Find("Panel_ConfirmDieChoice").gameObject;
+        }
         if (panel != null)
             panel.SetActive(false);
     }

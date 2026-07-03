@@ -57,6 +57,11 @@ public class GameOverView : MonoBehaviour
 
     public void Show(string message)
     {
+        if (panel == null)
+        {
+            Client.Log("GameOverView", "Panel reference missing. Using this gameObject.");
+            panel = transform.Find("Panel_Rematch").gameObject;
+        }
         if (panel != null)
             panel.SetActive(true);
 
@@ -75,6 +80,11 @@ public class GameOverView : MonoBehaviour
 
     public void Hide()
     {
+        if (panel == null)
+        {
+            Client.Log("GameOverView", "Panel reference missing. Using this gameObject.");
+            panel = transform.Find("Panel_Rematch").gameObject;
+        }
         if (panel != null)
             panel.SetActive(false);
     }

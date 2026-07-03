@@ -7,21 +7,31 @@ public class AnnouncementsView : MonoBehaviour
     [SerializeField] private TMP_Text anouncmentText;
     [SerializeField] private Button closeButton;
     [SerializeField] private GameObject panel;
-    private float autoHideDelay = 3f;
+    [SerializeField] private float autoHideDelay = 3f;
 
     private void Start()
     {
+        if (panel == null)
+        {
+            Client.Log("AnnouncementsView", "Panel reference missing. Using this gameObject.");
+            panel = transform.Find("Panel_Announcements").gameObject;
+        }
         if (closeButton != null) closeButton.onClick.AddListener(Hide);
         Hide();
     }
 
-    public void ShowAnnouncement(string message, bool autoHide = true)
+    public void Show(string message, bool autoHide = true)
     {
+        if (panel == null)
+        {
+            Client.Log("AnnouncementsView", "Panel reference missing. Using this gameObject.");
+            panel = transform.Find("Panel_Announcements").gameObject;
+        }
         anouncmentText.text = message;
-        gameObject.SetActive(true);
+        panel.SetActive(true);
         if (autoHide) 
-            Invoke(nameof(Hide), 3f);
+            Invoke(nameof(Hide), autoHideDelay);
     }
 
-    public void Hide() => gameObject.SetActive(false);
+    public void Hide() => panel.SetActive(false);
 }

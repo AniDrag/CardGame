@@ -23,7 +23,7 @@ public class RollAgainView : MonoBehaviour
             animation = GetComponent<TextCoroutineAnimator>();
 
         if (panel == null)
-            panel = gameObject;
+            panel = transform.Find("Panel_RoolAgain").gameObject;
 
         RegisterButtons();
 
@@ -72,7 +72,7 @@ public class RollAgainView : MonoBehaviour
         if (panel == null)
         {
             Client.Log("RollAgainView", "Panel reference missing. Using this gameObject.");
-            panel = gameObject;
+            panel = transform.Find("Panel_RoolAgain").gameObject;
         }
 
         panel.SetActive(true);
@@ -86,7 +86,7 @@ public class RollAgainView : MonoBehaviour
     public void Hide()
     {
         if (panel == null)
-            panel = gameObject;
+            panel = transform.Find("Panel_RoolAgain").gameObject;
 
         if (panel != null)
             panel.SetActive(false);
