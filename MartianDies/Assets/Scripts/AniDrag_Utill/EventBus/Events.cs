@@ -49,4 +49,4 @@ namespace AniDrag.EventBus
             EventBus<RefferenceEvent>.Publish(new RefferenceEvent(7));// will output 7
         }
     }
-} 
+}

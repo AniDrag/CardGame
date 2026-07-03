@@ -154,12 +154,25 @@ namespace AniDrag.EventBus.Utils
             }
 
             Debug.Log("Clearing all EventBuses...");
+
             for (int i = 0; i < EventBusTypes.Count; i++)
             {
-                var busType = EventBusTypes[i];
-                var clearMethod = busType.GetMethod("Clear",
-                    System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
-                clearMethod?.Invoke(null, null);
+                Type busType = EventBusTypes[i];
+
+                var clearMethod = busType.GetMethod(
+                    "Clear",
+                    System.Reflection.BindingFlags.Static |
+                    System.Reflection.BindingFlags.Public |
+                    System.Reflection.BindingFlags.NonPublic
+                );
+
+                if (clearMethod == null)
+                {
+                    Debug.LogWarning($"Could not find Clear() on {busType.Name}");
+                    continue;
+                }
+
+                clearMethod.Invoke(null, null);
             }
         }
     }
