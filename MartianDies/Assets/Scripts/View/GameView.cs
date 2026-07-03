@@ -1,7 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -48,6 +47,8 @@ public class GameView : MonoBehaviour
     private readonly Dictionary<string, UserView> userViews = new();
 
     private Coroutine diceSpawnCoroutine;
+    private readonly Dictionary<int, bool> activeSelectableDice = new();
+    private bool selectionEnabled = false;
     #endregion
 
     #region Turn Display
@@ -82,6 +83,13 @@ public class GameView : MonoBehaviour
 
     public void ClearUsers()
     {
+        if (usersPanel == null)
+        {
+            Client.Log("[GameView] Users panel missing.");
+            userViews.Clear();
+            return;
+        }
+
         foreach (Transform child in usersPanel)
             Destroy(child.gameObject);
 
@@ -96,9 +104,22 @@ public class GameView : MonoBehaviour
             return;
         }
 
+        if (usersPanel == null || userTabPrefab == null)
+        {
+            Client.Log("[GameView] Cannot add user. Users panel or user prefab missing.");
+            return;
+        }
+
         GameObject go = Instantiate(userTabPrefab, usersPanel);
 
         UserView userView = go.GetComponent<UserView>();
+
+        if (userView == null)
+        {
+            Client.Log("[GameView] User prefab is missing UserView.");
+            return;
+        }
+
         userView.Initialize(username, 25, points);
 
         userViews[username] = userView;
@@ -115,6 +136,12 @@ public class GameView : MonoBehaviour
 
         ClearZone(rollingZone);
 
+        if (rollingZone == null || dicePrefab == null)
+        {
+            Client.Log("[GameView] Cannot spawn rolling dice. Rolling zone or dice prefab missing.");
+            return;
+        }
+
         diceSpawnCoroutine = StartCoroutine(GenerateRollingZoneDiceRoutine(dice));
     }
 
@@ -130,10 +157,7 @@ public class GameView : MonoBehaviour
             ? offenseZone
             : defenseZone;
 
-        GameObject dice = Instantiate(dicePrefab, targetZone);
-
-        DiceView diceView = dice.GetComponent<DiceView>();
-        diceView.Initialize(diceType, false);
+        SpawnDiceInZone(diceType, targetZone, false);
     }
 
     public void MoveSelectedDiceToZone(int diceType)
@@ -144,6 +168,9 @@ public class GameView : MonoBehaviour
             return;
         }
 
+        if (rollingZone == null)
+            return;
+
         List<Transform> diceToMove = FindRolledDiceOfType(diceType);
 
         foreach (Transform diceTransform in diceToMove)
@@ -153,11 +180,11 @@ public class GameView : MonoBehaviour
             if (diceView != null)
                 diceView.SetSelectable(false);
 
-            if (IsPointDice(diceType))
+            if (IsPointDice(diceType) && pointZone != null)
             {
                 diceTransform.SetParent(pointZone, false);
             }
-            else if (diceType == (int)DiceType.UFO)
+            else if (diceType == (int)DiceType.UFO && defenseZone != null)
             {
                 diceTransform.SetParent(defenseZone, false);
             }
@@ -172,10 +199,7 @@ public class GameView : MonoBehaviour
             return;
         }
 
-        GameObject dice = Instantiate(dicePrefab, pointZone);
-
-        DiceView diceView = dice.GetComponent<DiceView>();
-        diceView.Initialize(diceType, false);
+        SpawnDiceInZone(diceType, pointZone, false);
     }
 
     #endregion
@@ -184,29 +208,27 @@ public class GameView : MonoBehaviour
 
     public void EnableDiceSelection(bool enable)
     {
-        foreach (Transform child in rollingZone)
-        {
-            DiceView dice = child.GetComponent<DiceView>();
+        selectionEnabled = enable;
 
-            if (dice != null)
-                dice.SetSelectable(enable);
-        }
+        if (!enable)
+            activeSelectableDice.Clear();
+
+        ApplySelectableStateToRollingDice();
     }
 
     public void SetDiceSelectable(Dictionary<int, bool> selectableDice, bool isMyTurn)
     {
-        foreach (Transform child in rollingZone)
-        {
-            DiceView dice = child.GetComponent<DiceView>();
+        activeSelectableDice.Clear();
 
-            if (dice != null)
-            {
-                if (isMyTurn && selectableDice.TryGetValue(dice.TypeIndex, out bool selectable))
-                    dice.SetSelectable(selectable);
-                else
-                    dice.SetSelectable(false);
-            }
+        if (selectableDice != null)
+        {
+            foreach (KeyValuePair<int, bool> pair in selectableDice)
+                activeSelectableDice[pair.Key] = pair.Value;
         }
+
+        selectionEnabled = isMyTurn;
+
+        ApplySelectableStateToRollingDice();
     }
 
     #endregion
@@ -215,6 +237,9 @@ public class GameView : MonoBehaviour
 
     public void ClearTurnDiceZones()
     {
+        selectionEnabled = false;
+        activeSelectableDice.Clear();
+
         ClearZone(rollingZone);
         ClearZone(offenseZone);
         ClearZone(defenseZone);
@@ -255,12 +280,23 @@ public class GameView : MonoBehaviour
 
     private DiceView SpawnDiceInZone(int diceType, Transform parent, bool selectable)
     {
+        if (dicePrefab == null || parent == null)
+        {
+            Client.Log("[GameView] Cannot spawn dice. Prefab or parent missing.");
+            return null;
+        }
+
         GameObject diceObject = Instantiate(dicePrefab, parent);
 
         DiceView diceView = diceObject.GetComponent<DiceView>();
 
         if (diceView != null)
+        {
             diceView.Initialize(diceType, selectable);
+
+            if (parent == rollingZone)
+                ApplySelectableStateToDice(diceView);
+        }
 
         return diceView;
     }
@@ -271,6 +307,9 @@ public class GameView : MonoBehaviour
     private List<Transform> FindRolledDiceOfType(int diceType)
     {
         List<Transform> matches = new List<Transform>();
+
+        if (rollingZone == null)
+            return matches;
 
         foreach (Transform child in rollingZone)
         {
@@ -320,6 +359,9 @@ public class GameView : MonoBehaviour
     {
         int count = 0;
 
+        if (rollingZone == null)
+            return count;
+
         foreach (Transform child in rollingZone)
         {
             DiceView diceView = child.GetComponent<DiceView>();
@@ -332,6 +374,40 @@ public class GameView : MonoBehaviour
         }
 
         return count;
+    }
+
+    private void ApplySelectableStateToRollingDice()
+    {
+        if (rollingZone == null)
+            return;
+
+        foreach (Transform child in rollingZone)
+        {
+            DiceView dice = child.GetComponent<DiceView>();
+            ApplySelectableStateToDice(dice);
+        }
+    }
+
+    private void ApplySelectableStateToDice(DiceView dice)
+    {
+        if (dice == null)
+            return;
+
+        bool selectable = false;
+
+        if (selectionEnabled)
+        {
+            if (activeSelectableDice.Count == 0)
+            {
+                selectable = true;
+            }
+            else if (activeSelectableDice.TryGetValue(dice.TypeIndex, out bool allowed))
+            {
+                selectable = allowed;
+            }
+        }
+
+        dice.SetSelectable(selectable);
     }
 
     #endregion

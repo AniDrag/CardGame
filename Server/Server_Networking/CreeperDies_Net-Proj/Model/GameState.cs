@@ -17,7 +17,9 @@ namespace CreeperDice_Net_Proj.Model
         private readonly Dictionary<string, HashSet<int>> _rematchVotesByRoom = new();
 
         private readonly Dictionary<string, DateTime> _stakePromptTimesByRoom = new();
-        private readonly TimeSpan _stakeAnswerTimeout = TimeSpan.FromSeconds(20);
+        private readonly TimeSpan _stakeAnswerTimeout = TimeSpan.FromSeconds(60);
+
+        private static int _startDiceCount = 13;
         #endregion
 
         #region Constructor
@@ -68,7 +70,7 @@ namespace CreeperDice_Net_Proj.Model
 
             LogGame(room, $"Starting game. Participants={room.Participants.Count}. Goal={room.pointGoal}.");
 
-            room.data = new GameData(13);
+            room.data = new GameData(_startDiceCount);
             room.data.ParticipantOrder = room.Participants.Select(p => p.id).ToList();
             room.data.CurrentPlayerIndex = 0;
             room.data.Phase = RoomGamePhase.NotStarted;

@@ -23,6 +23,7 @@ public class RoundResultsView : MonoBehaviour
 
     private void Start()
     {
+        FindMissingReferences();
         RegisterButtons();
         RegisterEvents();
 
@@ -37,12 +38,43 @@ public class RoundResultsView : MonoBehaviour
 
     #endregion
 
+    #region Setup
+
+    private void FindMissingReferences()
+    {
+        if (panel == null)
+        {
+            panel = ViewAutoFind.FindGameObject(transform, "Panel_RoundResults", "Panel_RoundResult", "Panel_Results");
+
+            if (panel == null && name.Contains("Panel_"))
+                panel = gameObject;
+        }
+
+        Transform searchRoot = panel != null ? panel.transform : transform;
+
+        if (resultsText == null)
+            resultsText = ViewAutoFind.FindFirstComponent<TMP_Text>(searchRoot);
+
+        if (closeButton == null)
+        {
+            closeButton = ViewAutoFind.FindComponentByNames<Button>(searchRoot, "btn_Close", "BTN_Close", "Close", "Button_Close");
+
+            if (closeButton == null)
+                closeButton = ViewAutoFind.FindComponentContainingAll<Button>(searchRoot, "close");
+        }
+    }
+
+    #endregion
+
     #region Registration
 
     private void RegisterButtons()
     {
         if (closeButton != null)
+        {
+            closeButton.onClick.RemoveListener(Hide);
             closeButton.onClick.AddListener(Hide);
+        }
     }
 
     private void UnregisterButtons()
@@ -78,15 +110,18 @@ public class RoundResultsView : MonoBehaviour
 
     private void Show(string message)
     {
+        FindMissingReferences();
+
         if (resultsText != null)
             resultsText.text = message;
+
         if (panel == null)
         {
-            Client.Log("RoundResultsView", "Panel reference missing. Using this gameObject.");
-            panel = transform.Find("Panel_RoundResults").gameObject;
+            Client.Log("RoundResultsView", "Panel reference missing. Cannot show round results.");
+            return;
         }
-        if (panel != null)
-            panel.SetActive(true);
+
+        panel.SetActive(true);
 
         CancelInvoke(nameof(Hide));
         Invoke(nameof(Hide), 5f);
@@ -94,11 +129,8 @@ public class RoundResultsView : MonoBehaviour
 
     public void Hide()
     {
-        if (panel == null)
-        {
-            Client.Log("RoundResultsView", "Panel reference missing. Using this gameObject.");
-            panel = transform.Find("Panel_RoundResults").gameObject;
-        }
+        FindMissingReferences();
+
         if (panel != null)
             panel.SetActive(false);
     }

@@ -79,16 +79,16 @@ public class LobbyController : MonoBehaviour
         }
 
         if (view == null)
-            view = FindFirstObjectByType<LobbyView>();
+            view = GetComponent<LobbyView>() ?? GetComponentInChildren<LobbyView>(true) ?? FindFirstObjectByType<LobbyView>();
 
         if (hostRoomView == null)
-            hostRoomView = FindFirstObjectByType<HostRoomView>();
+            hostRoomView = GetComponent<HostRoomView>() ?? GetComponentInChildren<HostRoomView>(true) ?? FindFirstObjectByType<HostRoomView>();
 
         if (createRoomView == null)
-            createRoomView = FindFirstObjectByType<CreateRoomView>();
+            createRoomView = GetComponent<CreateRoomView>() ?? GetComponentInChildren<CreateRoomView>(true) ?? FindFirstObjectByType<CreateRoomView>();
 
         if (waitingForHostView == null)
-            waitingForHostView = FindFirstObjectByType<WaitingForHostView>();
+            waitingForHostView = GetComponent<WaitingForHostView>() ?? GetComponentInChildren<WaitingForHostView>(true) ?? FindFirstObjectByType<WaitingForHostView>();
 
         bool valid = true;
 
@@ -134,6 +134,7 @@ public class LobbyController : MonoBehaviour
         client.AddListener(Msg.S_CREATED_ROOM, OnRoomCreated);
         client.AddListener(Msg.S_JOINED, OnRoomJoined);
         client.AddListener(Msg.S_CLOSED_ROOM, OnRoomClosed);
+        client.AddListener(Msg.S_RETURN_TO_LOBBY, OnReturnToLobby, OSCUtil.STRING);
     }
 
     private void UnregisterServerMessages()
@@ -150,6 +151,7 @@ public class LobbyController : MonoBehaviour
         client.RemoveListener(Msg.S_CREATED_ROOM, OnRoomCreated);
         client.RemoveListener(Msg.S_JOINED, OnRoomJoined);
         client.RemoveListener(Msg.S_CLOSED_ROOM, OnRoomClosed);
+        client.RemoveListener(Msg.S_RETURN_TO_LOBBY, OnReturnToLobby);
     }
 
     #endregion
@@ -440,6 +442,16 @@ public class LobbyController : MonoBehaviour
         SceneManager.LoadScene(Scenes.Game);
     }
 
+    private void OnReturnToLobby(OSCMessageIn msg, IPEndPoint sender)
+    {
+        string reason = msg.ReadString();
+
+        Client.Log("Lobby", "Return to lobby: " + reason);
+
+        LeaveCurrentRoomLocally();
+        SendRefreshRooms();
+    }
+
     private void OnError(OSCMessageIn msg, IPEndPoint sender)
     {
         string error = msg.ReadString();
@@ -450,7 +462,8 @@ public class LobbyController : MonoBehaviour
 
         EventBus<EnableButtons>.Publish(new EnableButtons(true));
 
-        createRoomView.EnableView(false);
+        if (createRoomView != null)
+            createRoomView.EnableView(false);
     }
 
     private void OnDisconnected(string reason)
@@ -514,7 +527,9 @@ public class LobbyController : MonoBehaviour
         pendingRoomName = null;
 
         EventBus<EnableButtons>.Publish(new EnableButtons(true));
-        createRoomView.EnableView(true);
+
+        if (createRoomView != null)
+            createRoomView.EnableView(true);
     }
 
     private void OnJoinRoomTimeout()

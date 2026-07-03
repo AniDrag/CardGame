@@ -85,6 +85,8 @@ public class Client : MonoBehaviour
 
     private void Update()
     {
+        dispatcher?.Update();
+
         ReadNetworkPackets();
         ProcessQueuedPackets();
         DetectConnectionLost();

@@ -16,10 +16,13 @@ public class MaliciousClientTester : MonoBehaviour
     [SerializeField] private TMP_Dropdown messageDropdown;
     [SerializeField] private TMP_InputField parameterInput;
     [SerializeField] private TMP_Text previewText;
+    [SerializeField] private TMP_InputField serverIpInput;
 
     [Header("Buttons")]
     [SerializeField] private Button sendButton;
     [SerializeField] private Button burstButton;
+    [SerializeField] private Button connectButton;
+    [SerializeField] private Button disconnectButton;
 
     [Header("Burst Settings")]
     [SerializeField] private TMP_InputField burstCountInput;
@@ -32,6 +35,9 @@ public class MaliciousClientTester : MonoBehaviour
     private readonly List<MessagePreset> presets = new();
     private Coroutine burstCoroutine;
 
+    private OSCMessageOut queuedMessageAfterConnect;
+    private bool waitingForAutoConnect;
+
     #endregion
 
     #region Unity Lifecycle
@@ -41,6 +47,10 @@ public class MaliciousClientTester : MonoBehaviour
         BuildPresets();
         PopulateDropdown();
         RegisterUI();
+        RegisterClientEvents();
+
+        if (serverIpInput != null && Client.Instance != null)
+            serverIpInput.text = Client.Instance.ServerIP;
 
         if (burstCountInput != null)
             burstCountInput.text = "10";
@@ -55,6 +65,7 @@ public class MaliciousClientTester : MonoBehaviour
     private void OnDestroy()
     {
         UnregisterUI();
+        UnregisterClientEvents();
 
         if (burstCoroutine != null)
             StopCoroutine(burstCoroutine);
@@ -148,6 +159,12 @@ public class MaliciousClientTester : MonoBehaviour
 
         if (burstButton != null)
             burstButton.onClick.AddListener(OnBurstClicked);
+
+        if (connectButton != null)
+            connectButton.onClick.AddListener(OnConnectClicked);
+
+        if (disconnectButton != null)
+            disconnectButton.onClick.AddListener(OnDisconnectClicked);
     }
 
     private void UnregisterUI()
@@ -163,6 +180,36 @@ public class MaliciousClientTester : MonoBehaviour
 
         if (burstButton != null)
             burstButton.onClick.RemoveListener(OnBurstClicked);
+
+        if (connectButton != null)
+            connectButton.onClick.RemoveListener(OnConnectClicked);
+
+        if (disconnectButton != null)
+            disconnectButton.onClick.RemoveListener(OnDisconnectClicked);
+    }
+
+    #endregion
+
+    #region Client Event Registration
+
+    private void RegisterClientEvents()
+    {
+        if (Client.Instance == null)
+            return;
+
+        Client.Instance.OnConnected += OnClientConnected;
+        Client.Instance.OnConnectionFailed += OnConnectionFailed;
+        Client.Instance.OnDisconnected += OnClientDisconnected;
+    }
+
+    private void UnregisterClientEvents()
+    {
+        if (Client.Instance == null)
+            return;
+
+        Client.Instance.OnConnected -= OnClientConnected;
+        Client.Instance.OnConnectionFailed -= OnConnectionFailed;
+        Client.Instance.OnDisconnected -= OnClientDisconnected;
     }
 
     #endregion
@@ -199,7 +246,61 @@ public class MaliciousClientTester : MonoBehaviour
             return;
         }
 
+        if (!HasClient())
+            return;
+
+        if (!Client.Instance.IsConnected)
+        {
+            Client.Log("MaliciousTester", "Connect first or send one message to auto-connect before starting a burst.");
+            ConnectRawClient();
+            return;
+        }
+
         burstCoroutine = StartCoroutine(SendBurst());
+    }
+
+    private void OnConnectClicked()
+    {
+        ConnectRawClient();
+    }
+
+    private void OnDisconnectClicked()
+    {
+        if (Client.Instance != null)
+            Client.Instance.Disconnect("Malicious tester disconnect");
+    }
+
+    #endregion
+
+    #region Client Events
+
+    private void OnClientConnected()
+    {
+        Client.Log("MaliciousTester", "Raw TCP connection ready.");
+
+        if (!waitingForAutoConnect || queuedMessageAfterConnect == null)
+            return;
+
+        OSCMessageOut msg = queuedMessageAfterConnect;
+        queuedMessageAfterConnect = null;
+        waitingForAutoConnect = false;
+
+        Client.Instance.Send(msg);
+        Client.Log("MaliciousTester", "Sent after auto-connect: " + msg);
+    }
+
+    private void OnConnectionFailed(string reason)
+    {
+        waitingForAutoConnect = false;
+        queuedMessageAfterConnect = null;
+        Client.Log("MaliciousTester", "Connection failed: " + reason);
+    }
+
+    private void OnClientDisconnected(string reason)
+    {
+        waitingForAutoConnect = false;
+        queuedMessageAfterConnect = null;
+        Client.Log("MaliciousTester", "Disconnected: " + reason);
     }
 
     #endregion
@@ -233,13 +334,19 @@ public class MaliciousClientTester : MonoBehaviour
 
     private void SendSelectedMessage()
     {
-        if (!CanSend())
+        if (!HasClient())
             return;
 
         if (!TryBuildMessage(out OSCMessageOut msg, out string error))
         {
             Client.Log("MaliciousTester", "Failed to build message: " + error);
             UpdatePreview(error);
+            return;
+        }
+
+        if (!Client.Instance.IsConnected)
+        {
+            QueueMessageAndConnect(msg);
             return;
         }
 
@@ -284,19 +391,63 @@ public class MaliciousClientTester : MonoBehaviour
 
     private bool CanSend()
     {
+        if (!HasClient())
+            return false;
+
+        if (!Client.Instance.IsConnected)
+        {
+            Client.Log("MaliciousTester", "Client is not connected yet. Auto-connecting to server.");
+            return false;
+        }
+
+        return true;
+    }
+
+    private bool HasClient()
+    {
         if (Client.Instance == null)
         {
             Client.Log("MaliciousTester", "Cannot send. Client.Instance missing.");
             return false;
         }
 
-        if (!Client.Instance.IsConnected)
+        return true;
+    }
+
+    private void QueueMessageAndConnect(OSCMessageOut msg)
+    {
+        queuedMessageAfterConnect = msg;
+        waitingForAutoConnect = true;
+
+        Client.Log("MaliciousTester", "Queued message and connecting raw client: " + msg);
+        ConnectRawClient();
+    }
+
+    private void ConnectRawClient()
+    {
+        if (!HasClient())
+            return;
+
+        if (Client.Instance.IsConnected)
         {
-            Client.Log("MaliciousTester", "Cannot send. Client is not connected.");
-            return false;
+            Client.Log("MaliciousTester", "Already connected.");
+            return;
         }
 
-        return true;
+        string ip = ReadServerIp();
+        Client.Log("MaliciousTester", $"Connecting raw tester to {ip}:{Msg.PORT}");
+        Client.Instance.Connect(ip, Msg.PORT);
+    }
+
+    private string ReadServerIp()
+    {
+        if (serverIpInput != null && !string.IsNullOrWhiteSpace(serverIpInput.text))
+            return serverIpInput.text.Trim();
+
+        if (Client.Instance != null && !string.IsNullOrWhiteSpace(Client.Instance.ServerIP))
+            return Client.Instance.ServerIP;
+
+        return "127.0.0.1";
     }
 
     #endregion

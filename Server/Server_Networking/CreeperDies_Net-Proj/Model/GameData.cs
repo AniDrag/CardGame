@@ -16,11 +16,11 @@ namespace CreeperDice_Net_Proj.Model
 
         private readonly Dictionary<int, int> _diceWeights = new()
         {
-            { Human, 25 },
-            { Cow, 25 },
-            { Chicken, 20 },
-            { Tank, 10 },
-            { Ufo, 20 }
+            { Human, 50 },
+            { Cow, 50 },
+            { Chicken, 50 },
+            { Tank, 45 },
+            { Ufo, 50 }
         };
 
         public int DiceToRoll { get; private set; }
@@ -68,7 +68,7 @@ namespace CreeperDice_Net_Proj.Model
             _startingDiceCount = initialDiceCount;
             DiceToRoll = initialDiceCount;
         }
-
+        //Resets all prams that are turn based to their starting values. This is called at the start of each player's turn
         public void ResetTurn()
         {
             DiceToRoll = _startingDiceCount;
@@ -144,7 +144,7 @@ namespace CreeperDice_Net_Proj.Model
             _diceMap.Remove(Tank);
         }
 
-       
+
 
         public Dictionary<int, bool> GetSelectableDice()
         {

@@ -73,25 +73,22 @@ public class GameController : MonoBehaviour
         }
 
         if (view == null)
-            view = GetComponent<GameView>();
+            view = GetComponent<GameView>() ?? GetComponentInChildren<GameView>(true);
 
         if (confirmChoice == null)
-            confirmChoice = GetComponent<ConfirmChoiceView>();
+            confirmChoice = GetComponent<ConfirmChoiceView>() ?? GetComponentInChildren<ConfirmChoiceView>(true);
 
         if (rollAgainView == null)
-            rollAgainView = GetComponent<RollAgainView>();
+            rollAgainView = GetComponent<RollAgainView>() ?? GetComponentInChildren<RollAgainView>(true);
 
         if (roundResultsView == null)
-            roundResultsView = GetComponent<RoundResultsView>();
+            roundResultsView = GetComponent<RoundResultsView>() ?? GetComponentInChildren<RoundResultsView>(true);
 
         if (announcementsView == null)
-            announcementsView = GetComponent<AnnouncementsView>();
-
-        if (rollAgainView == null)
-            rollAgainView = GetComponent<RollAgainView>();
+            announcementsView = GetComponent<AnnouncementsView>() ?? GetComponentInChildren<AnnouncementsView>(true);
 
         if (gameOverView == null)
-            gameOverView = GetComponent<GameOverView>();
+            gameOverView = GetComponent<GameOverView>() ?? GetComponentInChildren<GameOverView>(true);
 
         bool valid = true;
 
@@ -336,8 +333,15 @@ public class GameController : MonoBehaviour
     {
         Client.Log("Game", "Stake prompt received.");
 
+        // The stake prompt is sent privately to the current player. Keep this true so the
+        // RollAgainView buttons can send /c_stake_answer even if a previous turn flag was stale.
+        _isMyTurn = true;
+
         if (view != null)
+        {
             view.EnableDiceSelection(false);
+            view.SetTurnIndicator(true);
+        }
 
         if (rollAgainView == null)
         {
