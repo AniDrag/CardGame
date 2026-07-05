@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 2198711472463649102}
   - component: {fileID: 5001442522699925438}
   - component: {fileID: 5167215985219952094}
+  - component: {fileID: 4205618471664386153}
   m_Layer: 5
   m_Name: btn_Prefab
   m_TagString: Untagged
@@ -121,6 +122,29 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &4205618471664386153
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1604389180052861184}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5312d57302ba28842a097f217cf6e12d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AniDrag.Utility.UI.AniDragUIButtonSound
+  button: {fileID: 5167215985219952094}
+  soundController: {fileID: 0}
+  soundMode: 2
+  presetName: btn
+  manualClip: {fileID: 0}
+  manualVolume: 1
+  manualPitch: 1
+  overrideBlendMode: 0
+  blendMode: 0
+  playOnlyIfButtonInteractable: 1
+  showWarnings: 1
 --- !u!1 &4369283589696458139
 GameObject:
   m_ObjectHideFlags: 0

@@ -11,6 +11,7 @@ public class CreateRoomView : MonoBehaviour
     [SerializeField] private TMP_Text pointsCounter;
     [SerializeField] private Slider ptSlider;
     [SerializeField] private Button createRoom;
+    [SerializeField] private Button closeButton;
 
     #endregion
 
@@ -36,12 +37,18 @@ public class CreateRoomView : MonoBehaviour
 
     private void RegisterButtons()
     {
-        createRoom.onClick.AddListener(OnCreateRoomButtonClicked);
+        if (createRoom != null)
+            createRoom.onClick.AddListener(OnCreateRoomButtonClicked);
+        if (closeButton != null)
+            closeButton.onClick.AddListener(CloseView);
     }
 
     private void UnregisterButtons()
     {
-        createRoom.onClick.RemoveListener(OnCreateRoomButtonClicked);
+        if (createRoom != null)
+            createRoom.onClick.RemoveListener(OnCreateRoomButtonClicked);
+        if (closeButton != null)
+            closeButton.onClick.RemoveListener(CloseView);
     }
 
     private void RegisterSlider()
@@ -69,6 +76,10 @@ public class CreateRoomView : MonoBehaviour
     private void UpdatePointText(float value)
     {
         pointsCounter.text = $"PT: {Mathf.RoundToInt(value)}";
+    }
+    private void CloseView()
+    {
+        EnableView(false);
     }
 
     #endregion

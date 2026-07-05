@@ -6,12 +6,33 @@ using System.Net;
 
 namespace CreeperDice_Net_Proj.Model
 {
+    /*
+     * LobbyState
+     *
+     * Purpose:
+     * This class controls the server-side lobby and room system.
+     *
+     * It handles:
+     * - Creating rooms.
+     * - Joining rooms.
+     * - Leaving rooms.
+     * - Closing hosted rooms.
+     * - Listing available rooms.
+     * - Starting the game from a room.
+     *
+     * Naming rule used:
+     * - On prefix = receives an OSC message from a client.
+     * - Send prefix = sends an OSC message to a client, room, or all clients.
+     * - No On prefix = normal server logic, validation, or helper function.
+     *
+     * Important:
+     * This is server-side authoritative logic.
+     * The client can request lobby actions, but this class validates if the action is allowed.
+     */
     public class LobbyState
     {
         #region Fields
-
         private readonly TcpServer _server;
-
         private const int MaxRoomNameLength = 20;
 
         #endregion
@@ -28,6 +49,37 @@ namespace CreeperDice_Net_Proj.Model
 
         #region Message Registration
 
+        /*
+         * What this does:
+         * Registers all client-to-server lobby OSC messages.
+         *
+         * OSC received:
+         *
+         * Msg.C_CREATE_ROOM
+         * Payload:
+         * [0] string roomName
+         * [1] int pointGoal
+         *
+         * Msg.C_JOIN_ROOM
+         * Payload:
+         * [0] string roomName
+         *
+         * Msg.C_LEAVE_ROOM
+         * Payload:
+         * No data.
+         *
+         * Msg.C_LIST_ROOMS
+         * Payload:
+         * No data.
+         *
+         * Msg.C_CLOSE_ROOM
+         * Payload:
+         * No data.
+         *
+         * Msg.C_START_GAME
+         * Payload:
+         * No data.
+         */
         private void RegisterHandlers()
         {
             var dispatcher = _server.Dispatcher;
@@ -42,8 +94,30 @@ namespace CreeperDice_Net_Proj.Model
 
         #endregion
 
-        #region Received Messages
+        #region Received OSC Messages
 
+        /*
+         * OSC RECEIVE: Msg.C_CREATE_ROOM
+         *
+         * Payload received:
+         * [0] string roomName
+         * [1] int pointGoal
+         *
+         * Example:
+         * roomName = "Test Room"
+         * pointGoal = 25
+         *
+         * What this does:
+         * Validates the client and room data.
+         * If valid, creates a room hosted by this client.
+         *
+         * Validation:
+         * - Client must be registered.
+         * - Client must not already be in a room.
+         * - Room name must not be too long.
+         * - Point goal must be between 10 and 80.
+         * - Room name must not already exist.
+         */
         private void OnCreateRoom(OSCMessageIn msg, IPEndPoint sender)
         {
             Console.WriteLine("[Create Room] Started");
@@ -88,6 +162,26 @@ namespace CreeperDice_Net_Proj.Model
             Console.WriteLine($"[ROOM] {client.Name} created '{roomName}' with goal {pointGoal}");
         }
 
+        /*
+         * OSC RECEIVE: Msg.C_JOIN_ROOM
+         *
+         * Payload received:
+         * [0] string roomName
+         *
+         * Example:
+         * roomName = "Test Room"
+         *
+         * What this does:
+         * Lets a registered client join an existing room.
+         *
+         * Validation:
+         * - Client must be registered.
+         * - Client must not already be in a room.
+         * - Room name must not be too long.
+         * - Room must exist.
+         * - Room must not already be in game.
+         * - Room must not be full.
+         */
         private void OnJoinRoom(OSCMessageIn msg, IPEndPoint sender)
         {
             Console.WriteLine("[Join Room] Started");
@@ -130,6 +224,21 @@ namespace CreeperDice_Net_Proj.Model
             Console.WriteLine($"[ROOM] {client.Name} joined '{roomName}'");
         }
 
+        /*
+         * OSC RECEIVE: Msg.C_LEAVE_ROOM
+         *
+         * Payload received:
+         * No data.
+         *
+         * What this does:
+         * Removes the client from their current room.
+         *
+         * If the room becomes empty:
+         * The room is closed.
+         *
+         * If the host leaves but players remain:
+         * A new host is assigned.
+         */
         private void OnLeaveRoom(OSCMessageIn msg, IPEndPoint sender)
         {
             Console.WriteLine("[Leave Room] Started");
@@ -157,6 +266,15 @@ namespace CreeperDice_Net_Proj.Model
             Console.WriteLine($"[ROOM] {client.Name} left '{room.roomName}'");
         }
 
+        /*
+         * OSC RECEIVE: Msg.C_LIST_ROOMS
+         *
+         * Payload received:
+         * No data.
+         *
+         * What this does:
+         * Sends the current room list to the requesting client.
+         */
         private void OnListRooms(OSCMessageIn msg, IPEndPoint sender)
         {
             Console.WriteLine("[List Rooms] Called");
@@ -169,6 +287,21 @@ namespace CreeperDice_Net_Proj.Model
             SendRoomList(client);
         }
 
+        /*
+         * OSC RECEIVE: Msg.C_CLOSE_ROOM
+         *
+         * Payload received:
+         * No data.
+         *
+         * What this does:
+         * Allows the host to close their current room.
+         *
+         * Validation:
+         * - Client must exist.
+         * - Client must be in a room.
+         * - Room must exist.
+         * - Client must be the host.
+         */
         private void OnCloseRoom(OSCMessageIn msg, IPEndPoint sender)
         {
             Console.WriteLine("[Close Room] Called");
@@ -195,6 +328,28 @@ namespace CreeperDice_Net_Proj.Model
             Console.WriteLine($"[ROOM] {client.Name} closed '{room.roomName}'");
         }
 
+        /*
+         * OSC RECEIVE: Msg.C_START_GAME
+         *
+         * Payload received:
+         * No data.
+         *
+         * What this does:
+         * Starts the game loading process for the room.
+         *
+         * Validation:
+         * - Client must exist.
+         * - Client must be in a room.
+         * - Room must exist.
+         * - Client must be the host.
+         * - Game must not already be started.
+         *
+         * Important:
+         * This does not directly start the game logic.
+         * It marks room.GameStarted as true and sends Msg.S_GAME_STARTED.
+         * Clients then load the game scene.
+         * GameState starts the actual game after all clients send Msg.C_GAME_SCENE_READY.
+         */
         private void OnStartGame(OSCMessageIn msg, IPEndPoint sender)
         {
             Console.WriteLine("[Start Game] Started");
@@ -231,6 +386,18 @@ namespace CreeperDice_Net_Proj.Model
 
         #region Room Logic
 
+        /*
+         * What this does:
+         * Creates a new room object and adds the host as the first participant.
+         *
+         * Data received:
+         * hostClient = client creating the room.
+         * roomName = name of the new room.
+         * pointGoal = score needed to win.
+         *
+         * Returns:
+         * The created RoomData.
+         */
         private RoomData CreateRoom(ClientInfo hostClient, string roomName, int pointGoal)
         {
             RoomData room = new RoomData(roomName.GetHashCode(), roomName, hostClient.Name, pointGoal);
@@ -242,13 +409,11 @@ namespace CreeperDice_Net_Proj.Model
 
             return room;
         }
-
         private void AddClientToRoom(ClientInfo client, RoomData room)
         {
             room.Participants.Add(new Participant(client.Id, client.Name, 0));
             _server.UpdateClientRoom(client, room.roomName);
         }
-
         private void RemoveClientFromRoom(ClientInfo client, RoomData room)
         {
             Participant participant = room.Participants.FirstOrDefault(p => p.id == client.Id);
@@ -259,6 +424,14 @@ namespace CreeperDice_Net_Proj.Model
             _server.UpdateClientRoom(client, null);
         }
 
+        /*
+         * What this does:
+         * If the leaving client was the room host,
+         * assigns the first remaining participant as the new host.
+         *
+         * If the leaving client was not the host:
+         * Nothing changes.
+         */
         private void ReassignHostIfNeeded(ClientInfo leavingClient, RoomData room)
         {
             if (room.host != leavingClient.Name)
@@ -273,6 +446,15 @@ namespace CreeperDice_Net_Proj.Model
             _server.BroadcastToRoom(room.roomName, $"New host is: {room.host}");
         }
 
+        /*
+         * What this does:
+         * Fully closes a room.
+         *
+         * Flow:
+         * 1. Clear CurrentRoom on every participant.
+         * 2. Tell all clients the room was closed.
+         * 3. Remove the room from the server room list.
+         */
         private void CloseRoom(RoomData room)
         {
             ClearParticipantRoomRefs(room);
@@ -281,7 +463,6 @@ namespace CreeperDice_Net_Proj.Model
 
             _server.RemoveRoom(room.roomName);
         }
-
         private void ClearParticipantRoomRefs(RoomData room)
         {
             foreach (Participant participant in room.Participants)
@@ -295,8 +476,24 @@ namespace CreeperDice_Net_Proj.Model
 
         #endregion
 
-        #region Sending Messages
+        #region Sending OSC Messages
 
+        /*
+         * OSC SEND: Msg.S_CREATED_ROOM
+         *
+         * Sent to:
+         * The client who created the room.
+         *
+         * Payload sent:
+         * [0] string roomName
+         * [1] int participantCount
+         * [2] string hostName
+         * [3] int pointGoal
+         * [4] bool gameStarted
+         *
+         * What this tells the client:
+         * The room was created successfully and this client is now inside it.
+         */
         private void SendCreatedRoom(ClientInfo client, RoomData room)
         {
             var msg = new OSCMessageOut(Msg.S_CREATED_ROOM)
@@ -309,6 +506,22 @@ namespace CreeperDice_Net_Proj.Model
             _server.Send(client.Connection, msg);
         }
 
+        /*
+         * OSC SEND: Msg.S_JOINED
+         *
+         * Sent to:
+         * The client who joined the room.
+         *
+         * Payload sent:
+         * [0] string roomName
+         * [1] int participantCount
+         * [2] string hostName
+         * [3] int pointGoal
+         * [4] bool gameStarted
+         *
+         * What this tells the client:
+         * Join room succeeded and this client is now inside the room.
+         */
         private void SendJoinedRoom(ClientInfo client, RoomData room)
         {
             var msg = new OSCMessageOut(Msg.S_JOINED)
@@ -321,6 +534,22 @@ namespace CreeperDice_Net_Proj.Model
             _server.Send(client.Connection, msg);
         }
 
+        /*
+         * OSC SEND: Msg.S_ROOM_UPDATE
+         *
+         * Sent to:
+         * All connected clients.
+         *
+         * Payload sent:
+         * [0] string roomName
+         * [1] int participantCount
+         * [2] string hostName
+         * [3] int pointGoal
+         * [4] bool gameStarted
+         *
+         * What this tells clients:
+         * A room was created, changed, started, or had participants changed.
+         */
         private void SendRoomUpdate(RoomData room)
         {
             var msg = new OSCMessageOut(Msg.S_ROOM_UPDATE)
@@ -333,6 +562,25 @@ namespace CreeperDice_Net_Proj.Model
             _server.BroadcastToAll(msg);
         }
 
+        /*
+         * OSC SEND: Msg.S_ROOM_LIST
+         *
+         * Sent to:
+         * One requesting client.
+         *
+         * Payload sent:
+         * [0] int roomCount
+         * Then repeated roomCount times:
+         *     string roomName
+         *     int pointGoal
+         *     string hostName
+         *     int participantCount
+         *     int gameStartedState
+         *
+         * gameStartedState:
+         * 0 = room is still in lobby.
+         * 1 = room game already started.
+         */
         private void SendRoomList(ClientInfo client)
         {
             var msg = new OSCMessageOut(Msg.S_ROOM_LIST)
@@ -350,6 +598,18 @@ namespace CreeperDice_Net_Proj.Model
             _server.Send(client.Connection, msg);
         }
 
+        /*
+         * OSC SEND: Msg.S_CLOSED_ROOM
+         *
+         * Sent to:
+         * All connected clients.
+         *
+         * Payload sent:
+         * [0] string roomName
+         *
+         * What this tells clients:
+         * The room was closed and should be removed from room lists.
+         */
         private void SendRoomClosed(RoomData room)
         {
             var msg = new OSCMessageOut(Msg.S_CLOSED_ROOM)
@@ -358,6 +618,21 @@ namespace CreeperDice_Net_Proj.Model
             _server.BroadcastToAll(msg);
         }
 
+        /*
+         * OSC SEND: Msg.S_GAME_STARTED
+         *
+         * Sent to:
+         * All clients inside the room.
+         *
+         * Payload sent:
+         * No data.
+         *
+         * What this tells clients:
+         * Load the game scene.
+         *
+         * Important:
+         * After loading, each client should send Msg.C_GAME_SCENE_READY.
+         */
         private void SendGameStarted(RoomData room)
         {
             var msg = new OSCMessageOut(Msg.S_GAME_STARTED);
@@ -377,7 +652,6 @@ namespace CreeperDice_Net_Proj.Model
             _server.SendError(client.Connection, $"{context} Already in a room");
             return false;
         }
-
         private bool ValidatePointGoal(ClientInfo client, int pointGoal)
         {
             if (pointGoal >= 10 && pointGoal <= 80)
@@ -407,7 +681,7 @@ namespace CreeperDice_Net_Proj.Model
         #endregion
 
         #region Helpers
-
+         
         private TcpNetworkConnection GetConnection(IPEndPoint endpoint)
         {
             return _server.GetConnectionByEndpoint(endpoint);

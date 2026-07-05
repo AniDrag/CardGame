@@ -6,20 +6,57 @@ using System.Net;
 
 namespace CreeperDice_Net_Proj.Model
 {
+    /*
+     * GameState
+     *
+     * Purpose:
+     * This class controls the server-side game flow for Creeper Dice.
+     *
+     * It is responsible for:
+     * - Registering game-related OSC messages from clients.
+     * - Waiting until all players have loaded the game scene.
+     * - Starting the game for a room.
+     * - Starting and ending turns.
+     * - Rolling dice through GameData.
+     * - Validating if a client is allowed to act.
+     * - Handling dice selection.
+     * - Handling stake / double danger choices.
+     * - Handling rematch requests.
+     * - Handling players leaving the game.
+     * - Sending game state updates to clients.
+     *
+     * Naming rule used:
+     * - On prefix = receives an OSC message from a client.
+     * - Send prefix = sends an OSC message to one client or a room.
+     * - No On prefix = normal server logic, helper, validation, timeout, or logging.
+     *
+     * Important:
+     * This is server-side authoritative logic.
+     * Clients can request actions, but this class checks if the action is valid.
+     */
+
     public class GameState
     {
         #region Fields
-
         private readonly TcpServer _server;
 
+        /*
+         * _readyPlayersByRoom:
+         * Tracks which players have loaded the game scene.
+         *
+         * Key:
+         * room name.
+         *
+         * Value:
+         * client ids that sent Msg.C_GAME_SCENE_READY.
+         */
         private readonly Dictionary<string, HashSet<int>> _readyPlayersByRoom = new();
         private readonly HashSet<string> _startedRooms = new();
         private readonly Dictionary<string, HashSet<int>> _rematchVotesByRoom = new();
-
         private readonly Dictionary<string, DateTime> _stakePromptTimesByRoom = new();
         private readonly TimeSpan _stakeAnswerTimeout = TimeSpan.FromSeconds(60);
+        private static readonly int _defaultDiceCount = 13;
 
-        private static int _startDiceCount = 13;
         #endregion
 
         #region Constructor
@@ -34,6 +71,32 @@ namespace CreeperDice_Net_Proj.Model
 
         #region Message Registration
 
+        /*
+         * What this does:
+         * Registers all client-to-server OSC game messages.
+         *
+         * OSC received:
+         *
+         * Msg.C_GAME_SCENE_READY
+         * Payload:
+         * No data.
+         *
+         * Msg.C_SELECT_DICE
+         * Payload:
+         * [0] int diceType
+         *
+         * Msg.C_STAKE_ANSWER
+         * Payload:
+         * [0] bool doReRollOrDoubleStake
+         *
+         * Msg.C_REMATCH_REQUEST
+         * Payload:
+         * No data.
+         *
+         * Msg.C_LEAVE_GAME
+         * Payload:
+         * No data.
+         */
         private void RegisterHandlers()
         {
             OSCDispatcher dispatcher = _server.Dispatcher;
@@ -54,6 +117,23 @@ namespace CreeperDice_Net_Proj.Model
         {
             CheckStakeAnswerTimeouts();
         }
+
+        /*
+         * What this does:
+         * Starts the game logic for a room.
+         *
+         * Data received:
+         * room = room that should begin its game.
+         *
+         * Flow:
+         * 1. Validate room exists.
+         * 2. Validate room has participants.
+         * 3. Create fresh GameData.
+         * 4. Store turn order from room participants.
+         * 5. Set current player index to 0.
+         * 6. Send initial game state.
+         * 7. Start the first turn.
+         */
         public void StartGameForRoom(RoomData room)
         {
             if (room == null)
@@ -70,7 +150,7 @@ namespace CreeperDice_Net_Proj.Model
 
             LogGame(room, $"Starting game. Participants={room.Participants.Count}. Goal={room.pointGoal}.");
 
-            room.data = new GameData(_startDiceCount);
+            room.data = new GameData(_defaultDiceCount);
             room.data.ParticipantOrder = room.Participants.Select(p => p.id).ToList();
             room.data.CurrentPlayerIndex = 0;
             room.data.Phase = RoomGamePhase.NotStarted;
@@ -82,6 +162,18 @@ namespace CreeperDice_Net_Proj.Model
             StartTurn(room);
         }
 
+        /*
+         * What this does:
+         * Starts one player's turn.
+         *
+         * Flow:
+         * 1. Reset turn data.
+         * 2. Find current player.
+         * 3. Tell clients whose turn started.
+         * 4. Send announcement.
+         * 5. Send current game state.
+         * 6. Roll dice for the current player.
+         */
         private void StartTurn(RoomData room)
         {
             try
@@ -109,6 +201,23 @@ namespace CreeperDice_Net_Proj.Model
             }
         }
 
+        /*
+         * What this does:
+         * Rolls dice for the current room/player.
+         *
+         * Flow:
+         * 1. Set phase to Rolling.
+         * 2. Call GameData.RollDice().
+         * 3. Send dice results to all clients in room.
+         * 4. Check instant defense bust.
+         * 5. Check if there are no selectable dice.
+         * 6. Send selectable dice options to current player.
+         * 7. Set phase to WaitingForDiceSelection.
+         *
+         * Important:
+         * Dice are rolled by the server.
+         * Clients only display the result.
+         */
         private void RollForRoom(RoomData room)
         {
             try
@@ -164,6 +273,14 @@ namespace CreeperDice_Net_Proj.Model
             }
         }
 
+        /*
+         * What this does:
+         * Checks rooms waiting for a stake answer.
+         *
+         * If the current player does not answer in time:
+         * - If they can bank, the server banks points automatically.
+         * - If they cannot bank, the server busts the turn.
+         */
         private void CheckStakeAnswerTimeouts()
         {
             foreach (KeyValuePair<string, DateTime> pair in _stakePromptTimesByRoom.ToList())
@@ -197,6 +314,24 @@ namespace CreeperDice_Net_Proj.Model
             }
         }
 
+        /*
+         * What this does:
+         * Ends the current player's turn.
+         *
+         * Data received:
+         * busted = true if the player lost the turn.
+         * reason = explanation for logs and announcements.
+         *
+         * If busted:
+         * Player gains 0 points.
+         *
+         * If not busted:
+         * Player banks CurrentPoints * ScoreMultiplier.
+         *
+         * Double danger note:
+         * In this current version, GameState applies ScoreMultiplier at bank time.
+         * That means double danger/double stake doubles the final banked turn points.
+         */
         private void EndTurn(RoomData room, bool busted, string reason)
         {
             try
@@ -234,7 +369,14 @@ namespace CreeperDice_Net_Proj.Model
                     return;
                 }
 
-                data.CurrentPlayerIndex = (data.CurrentPlayerIndex + 1) % room.Participants.Count;
+                if (data.ParticipantOrder == null || data.ParticipantOrder.Count == 0 || room.Participants.Count == 0)
+                {
+                    LogGame(room, "No players left after turn end. Ending game.");
+                    EndGame(room, "Game ended because no players are left.");
+                    return;
+                }
+
+                data.CurrentPlayerIndex = (data.CurrentPlayerIndex + 1) % data.ParticipantOrder.Count;
 
                 LogGame(room, $"Next player index: {data.CurrentPlayerIndex}.");
 
@@ -246,6 +388,17 @@ namespace CreeperDice_Net_Proj.Model
                 EndGame(room, "Game ended because the server failed to end a turn.");
             }
         }
+
+        /*
+         * What this does:
+         * Starts a new match in the same room.
+         *
+         * Flow:
+         * 1. Clear rematch votes.
+         * 2. Reset participant scores.
+         * 3. Tell clients rematch started.
+         * 4. Start game again for the same room.
+         */
         private void StartRematch(RoomData room)
         {
             if (room == null)
@@ -264,6 +417,10 @@ namespace CreeperDice_Net_Proj.Model
             StartGameForRoom(room);
         }
 
+        /*
+         * What this does:
+         * Checks if all current participants voted for rematch.
+         */
         private bool ShouldStartRematch(RoomData room)
         {
             if (room == null)
@@ -297,13 +454,14 @@ namespace CreeperDice_Net_Proj.Model
 
             CleanupRoom(room);
         }
-
         private void RemovePlayerFromRoom(RoomData room, ClientInfo client)
         {
             if (room == null || client == null)
                 return;
 
             room.Participants.RemoveAll(participant => participant.id == client.Id);
+
+            HandlePlayerRemovedFromGame(room, client.Id, $"{client.Name} left the game.");
 
             client.CurrentRoom = null;
 
@@ -312,7 +470,6 @@ namespace CreeperDice_Net_Proj.Model
 
             LogGame(room, $"Removed {client.Name}. Players left={room.Participants.Count}");
         }
-
         private void CleanupRoom(RoomData room)
         {
             if (room == null)
@@ -323,9 +480,87 @@ namespace CreeperDice_Net_Proj.Model
             _readyPlayersByRoom.Remove(room.roomName);
             _startedRooms.Remove(room.roomName);
             _rematchVotesByRoom.Remove(room.roomName);
+            _stakePromptTimesByRoom.Remove(room.roomName);
 
             _server.RemoveRoom(room.roomName);
         }
+
+        /*
+         * What this does:
+         * Updates game state if a player is removed while the game exists.
+         *
+         * Important cases:
+         * - Remove player from ready list.
+         * - Remove player from rematch votes.
+         * - Remove player from turn order.
+         * - Fix CurrentPlayerIndex.
+         * - If the removed player was the current player, start the next player's turn.
+         */
+        public void HandlePlayerRemovedFromGame(RoomData room, int removedClientId, string reason)
+        {
+            if (room == null)
+                return;
+
+            if (_readyPlayersByRoom.TryGetValue(room.roomName, out HashSet<int> readyPlayers))
+                readyPlayers.Remove(removedClientId);
+
+            if (_rematchVotesByRoom.TryGetValue(room.roomName, out HashSet<int> rematchVotes))
+                rematchVotes.Remove(removedClientId);
+
+            GameData data = room.data;
+
+            if (data == null || data.ParticipantOrder == null || data.ParticipantOrder.Count == 0)
+                return;
+
+            int removedIndex = data.ParticipantOrder.IndexOf(removedClientId);
+
+            if (removedIndex < 0)
+                return;
+
+            bool removedCurrentPlayer = data.CurrentPlayerIndex >= 0 &&
+                                        data.CurrentPlayerIndex < data.ParticipantOrder.Count &&
+                                        data.ParticipantOrder[data.CurrentPlayerIndex] == removedClientId;
+
+            data.ParticipantOrder.RemoveAt(removedIndex);
+
+            if (data.ParticipantOrder.Count == 0 || room.Participants.Count == 0)
+            {
+                _stakePromptTimesByRoom.Remove(room.roomName);
+                LogGame(room, "All players left the active game.");
+                return;
+            }
+
+            if (removedIndex < data.CurrentPlayerIndex)
+                data.CurrentPlayerIndex--;
+
+            if (data.CurrentPlayerIndex < 0 || data.CurrentPlayerIndex >= data.ParticipantOrder.Count)
+                data.CurrentPlayerIndex = 0;
+
+            _stakePromptTimesByRoom.Remove(room.roomName);
+
+            if (!room.GameStarted || data.Phase == RoomGamePhase.NotStarted || data.Phase == RoomGamePhase.Finished)
+                return;
+
+            SendGameAnnouncement(room, reason);
+            SendGameState(room);
+
+            if (!removedCurrentPlayer)
+                return;
+
+            LogGame(room, "Current player was removed. Starting the next available player's turn.");
+            StartTurn(room);
+        }
+
+        /*
+         * What this does:
+         * Finishes the game for the room.
+         *
+         * Flow:
+         * 1. Set phase to Finished.
+         * 2. Send game end message to clients.
+         * 3. Create rematch vote list if needed.
+         * 4. Send rematch update.
+         */
         private void EndGame(RoomData room, string message)
         {
             if (room == null)
@@ -343,11 +578,24 @@ namespace CreeperDice_Net_Proj.Model
 
             SendRematchUpdate(room);
         }
-        
+
         #endregion
 
-        #region Received Messages
+        #region Received OSC Messages
 
+        /*
+         * OSC RECEIVE: Msg.C_GAME_SCENE_READY
+         *
+         * Payload received:
+         * No data.
+         *
+         * What this means:
+         * A client loaded the game scene and is ready.
+         *
+         * What this does:
+         * Tracks ready players for the room.
+         * When all players in the room are ready, the server starts the game.
+         */
         private void OnGameSceneReady(OSCMessageIn msg, IPEndPoint sender)
         {
             ClientInfo client = _server.GetClientByEndpoint(sender);
@@ -404,6 +652,23 @@ namespace CreeperDice_Net_Proj.Model
             StartGameForRoom(room);
         }
 
+        /*
+         * OSC RECEIVE: Msg.C_SELECT_DICE
+         *
+         * Payload received:
+         * [0] int diceType
+         *
+         * Example:
+         * diceType = 0 means Human.
+         * diceType = 1 means Cow.
+         * diceType = 2 means Chicken.
+         * diceType = 3 means Tank.
+         * diceType = 4 means UFO.
+         *
+         * What this does:
+         * Validates that the sender is the current player and that the game is waiting for dice selection.
+         * Then it asks GameData to select the dice type.
+         */
         private void OnSelectDice(OSCMessageIn msg, IPEndPoint sender)
         {
             ClientInfo client = _server.GetClientByEndpoint(sender);
@@ -423,6 +688,7 @@ namespace CreeperDice_Net_Proj.Model
             {
                 LogGame(room, $"{client.Name} tried to select dice during invalid phase: {data.Phase}.");
                 SendInvalidMove(client, "You cannot select dice right now.");
+                _server.AddMaliciousStrike(client);
                 return;
             }
 
@@ -435,8 +701,8 @@ namespace CreeperDice_Net_Proj.Model
                 LogGame(room, $"{client.Name}'s dice selection was rejected. Reason: {error}");
 
                 SendInvalidMove(client, error);
+                _server.AddMaliciousStrike(client);
 
-                // Re-send valid options so the current player can re-enable the right buttons.
                 SendTurnOptionsToClient(room, client);
                 return;
             }
@@ -482,6 +748,20 @@ namespace CreeperDice_Net_Proj.Model
             RollForRoom(room);
         }
 
+        /*
+         * OSC RECEIVE: Msg.C_STAKE_ANSWER
+         *
+         * Payload received:
+         * [0] bool doReRollOrDoubleStake
+         *
+         * Meaning:
+         * false = player chooses to bank points.
+         * true  = player chooses double danger / continue rolling.
+         *
+         * Current behavior:
+         * If true, this calls GameData.EnableDoubleStake() and rolls again.
+         * In the current code, EndTurn uses data.ScoreMultiplier when banking.
+         */
         private void OnStakeAnswer(OSCMessageIn msg, IPEndPoint sender)
         {
             ClientInfo client = _server.GetClientByEndpoint(sender);
@@ -503,6 +783,7 @@ namespace CreeperDice_Net_Proj.Model
             {
                 LogGame(room, $"{client.Name} tried to answer stake during invalid phase: {data.Phase}.");
                 SendInvalidMove(client, "You are not being asked to stake right now.");
+                _server.AddMaliciousStrike(client);
                 return;
             }
 
@@ -525,6 +806,16 @@ namespace CreeperDice_Net_Proj.Model
             RollForRoom(room);
         }
 
+        /*
+         * OSC RECEIVE: Msg.C_REMATCH_REQUEST
+         *
+         * Payload received:
+         * No data.
+         *
+         * What this does:
+         * Adds the player to the rematch vote list.
+         * If all current participants voted, a rematch starts.
+         */
         private void OnRematchRequest(OSCMessageIn msg, IPEndPoint sender)
         {
             ClientInfo client = _server.GetClientByEndpoint(sender);
@@ -566,6 +857,16 @@ namespace CreeperDice_Net_Proj.Model
             }
         }
 
+        /*
+         * OSC RECEIVE: Msg.C_LEAVE_GAME
+         *
+         * Payload received:
+         * No data.
+         *
+         * What this does:
+         * Removes a player from the active game.
+         * If the host leaves, the room closes.
+         */
         private void OnLeaveGame(OSCMessageIn msg, IPEndPoint sender)
         {
             ClientInfo client = _server.GetClientByEndpoint(sender);
@@ -613,6 +914,12 @@ namespace CreeperDice_Net_Proj.Model
 
         #region Sending Messages
 
+        /*
+         * OSC SEND: Msg.S_YOUR_TURN
+         *
+         * Payload sent:
+         * [0] string message
+         */
         private void SendYourTurn(RoomData room, Participant player)
         {
             LogGame(room, $"SEND {Msg.S_YOUR_TURN} -> {player.clientName}'s turn.");
@@ -623,6 +930,13 @@ namespace CreeperDice_Net_Proj.Model
             _server.BroadcastToRoom(room, msg);
         }
 
+        /*
+         * OSC SEND: Msg.S_TURN_STARTED
+         *
+         * Payload sent:
+         * [0] int currentPlayerId
+         * [1] string currentPlayerName
+         */
         private void SendTurnStarted(RoomData room, Participant player)
         {
             LogGame(room, $"SEND {Msg.S_TURN_STARTED} -> currentPlayerId={player.id}, currentPlayerName={player.clientName}");
@@ -634,6 +948,19 @@ namespace CreeperDice_Net_Proj.Model
             _server.BroadcastToRoom(room, msg);
         }
 
+        /*
+         * OSC SEND: Msg.S_DICE_ROLLED
+         *
+         * Payload sent:
+         * [0] int ownerClientId
+         * [1] int diceCount
+         * [2...] int diceType repeated diceCount times
+         * After dice list:
+         * int currentPoints
+         * int currentDefense
+         * int currentAttack
+         * bool doubleStakeActive
+         */
         private void SendDiceRolledToRoom(RoomData room)
         {
             GameData data = room.data;
@@ -648,10 +975,8 @@ namespace CreeperDice_Net_Proj.Model
 
             var msg = new OSCMessageOut(Msg.S_DICE_ROLLED);
 
-            // Who owns this roll/turn.
             msg.AddInt(currentClient.Id);
 
-            // Raw dice visuals for everyone.
             IReadOnlyList<int> roll = data.CurrentRoll;
 
             msg.AddInt(roll.Count);
@@ -659,7 +984,6 @@ namespace CreeperDice_Net_Proj.Model
             foreach (int dice in roll)
                 msg.AddInt(dice);
 
-            // Public authoritative turn values.
             msg.AddInt(data.CurrentPoints);
             msg.AddInt(data.CurrentDefense);
             msg.AddInt(data.CurrentAttack);
@@ -670,6 +994,12 @@ namespace CreeperDice_Net_Proj.Model
             _server.BroadcastToRoom(room, msg);
         }
 
+        /*
+         * OSC SEND: Msg.S_DICE_SELECTED
+         *
+         * Payload sent:
+         * [0] int diceType
+         */
         private void SendDiceSelected(RoomData room, int diceType)
         {
             LogGame(room, $"SEND {Msg.S_DICE_SELECTED} -> diceType={DiceTypeName(diceType)}({diceType})");
@@ -680,6 +1010,10 @@ namespace CreeperDice_Net_Proj.Model
             _server.BroadcastToRoom(room, msg);
         }
 
+        /*
+         * What this does:
+         * Sends selectable dice only to the current player.
+         */
         private void SendTurnOptionsToCurrentPlayer(RoomData room)
         {
             ClientInfo currentClient = CurrentClient(room);
@@ -693,6 +1027,17 @@ namespace CreeperDice_Net_Proj.Model
             SendTurnOptionsToClient(room, currentClient);
         }
 
+        /*
+         * OSC SEND: Msg.S_TURN_OPTIONS
+         *
+         * Sent privately to one client.
+         *
+         * Payload sent:
+         * [0] int selectableCount
+         * Then repeated selectableCount times:
+         *     int diceType
+         *     bool isSelectable
+         */
         private void SendTurnOptionsToClient(RoomData room, ClientInfo client)
         {
             Dictionary<int, bool> selectableDice = room.data.GetSelectableDice();
@@ -711,6 +1056,14 @@ namespace CreeperDice_Net_Proj.Model
             _server.Send(client.Connection, msg);
         }
 
+        /*
+         * OSC SEND: Msg.S_STAKE_PROMPT
+         *
+         * Sent privately to the current player.
+         *
+         * Payload sent:
+         * No data.
+         */
         private void SendStakePrompt(ClientInfo client)
         {
             LogGame($"SEND {Msg.S_STAKE_PROMPT} -> to {client.Name}");
@@ -723,6 +1076,16 @@ namespace CreeperDice_Net_Proj.Model
             _server.Send(client.Connection, msg);
         }
 
+        /*
+         * OSC SEND: Msg.S_GAME_STATE
+         *
+         * Payload sent:
+         * [0] int currentPlayerIndex
+         * [1] int participantCount
+         * Then repeated participantCount times:
+         *     string playerName
+         *     int currentScore
+         */
         private void SendGameState(RoomData room)
         {
             GameData data = room.data;
@@ -742,6 +1105,12 @@ namespace CreeperDice_Net_Proj.Model
             _server.BroadcastToRoom(room, msg);
         }
 
+        /*
+         * OSC SEND: Msg.S_GAME_ANNOUNCEMENT
+         *
+         * Payload sent:
+         * [0] string message
+         */
         private void SendGameAnnouncement(RoomData room, string message)
         {
             LogGame(room, $"SEND {Msg.S_GAME_ANNOUNCEMENT} -> {message}");
@@ -752,6 +1121,14 @@ namespace CreeperDice_Net_Proj.Model
             _server.BroadcastToRoom(room, msg);
         }
 
+        /*
+         * OSC SEND: Msg.S_INVALID_MOVE
+         *
+         * Sent privately to one client.
+         *
+         * Payload sent:
+         * [0] string reason
+         */
         private void SendInvalidMove(ClientInfo client, string reason)
         {
             LogGame($"SEND {Msg.S_INVALID_MOVE} -> to {client?.Name ?? "NULL_CLIENT"}: {reason}");
@@ -764,6 +1141,14 @@ namespace CreeperDice_Net_Proj.Model
 
             _server.Send(client.Connection, msg);
         }
+
+        /*
+         * OSC SEND: Msg.S_REMATCH_UPDATE
+         *
+         * Payload sent:
+         * [0] int readyCount
+         * [1] int neededCount
+         */
         private void SendRematchUpdate(RoomData room)
         {
             if (room == null)
@@ -784,6 +1169,12 @@ namespace CreeperDice_Net_Proj.Model
             _server.BroadcastToRoom(room, msg);
         }
 
+        /*
+         * OSC SEND: Msg.S_REMATCH_STARTED
+         *
+         * Payload sent:
+         * No data.
+         */
         private void SendRematchStarted(RoomData room)
         {
             LogGame(room, $"SEND {Msg.S_REMATCH_STARTED}");
@@ -793,6 +1184,14 @@ namespace CreeperDice_Net_Proj.Model
             _server.BroadcastToRoom(room, msg);
         }
 
+        /*
+         * OSC SEND: Msg.S_RETURN_TO_LOBBY
+         *
+         * Sent to one client.
+         *
+         * Payload sent:
+         * [0] string reason
+         */
         private void SendReturnToLobby(ClientInfo client, string reason)
         {
             if (client == null)
@@ -806,6 +1205,14 @@ namespace CreeperDice_Net_Proj.Model
             _server.Send(client.Connection, msg);
         }
 
+        /*
+         * OSC SEND: Msg.S_RETURN_TO_LOBBY
+         *
+         * Broadcast to full room.
+         *
+         * Payload sent:
+         * [0] string reason
+         */
         private void SendReturnToLobby(RoomData room, string reason)
         {
             if (room == null)
@@ -818,6 +1225,13 @@ namespace CreeperDice_Net_Proj.Model
 
             _server.BroadcastToRoom(room, msg);
         }
+
+        /*
+         * OSC SEND: Msg.S_GAME_END
+         *
+         * Payload sent:
+         * [0] string message
+         */
         private void SendGameEnd(RoomData room, string message)
         {
             LogGame(room, $"SEND {Msg.S_GAME_END} -> {message}");
@@ -832,6 +1246,27 @@ namespace CreeperDice_Net_Proj.Model
 
         #region Validation
 
+        /*
+         * What this does:
+         * Checks if a client is allowed to perform current-player game actions.
+         *
+         * Used before:
+         * - Selecting dice.
+         * - Answering stake prompt.
+         *
+         * Validation checks:
+         * - Client exists.
+         * - Client is in a room.
+         * - Room exists.
+         * - Game has started.
+         * - GameData exists.
+         * - Turn order exists.
+         * - CurrentPlayerIndex is valid.
+         * - Client id matches current player id.
+         *
+         * If validation fails:
+         * Sends invalid move message to the client.
+         */
         private bool ValidateCurrentPlayer(ClientInfo client, out RoomData room, out GameData data)
         {
             room = null;
@@ -893,6 +1328,7 @@ namespace CreeperDice_Net_Proj.Model
             {
                 LogGame(room, $"{client.Name} failed validation: not their turn. CurrentPlayerId={currentPlayerId}, ClientId={client.Id}.");
                 SendInvalidMove(client, "Not your turn.");
+                _server.AddMaliciousStrike(client);
                 return false;
             }
 
@@ -903,11 +1339,22 @@ namespace CreeperDice_Net_Proj.Model
 
         #region Helpers
 
+        /*
+         * What this does:
+         * Returns the Participant object for the current turn player.
+         *
+         * Throws:
+         * InvalidOperationException if the current player id is no longer in room participants.
+         */
         private Participant CurrentParticipant(RoomData room)
         {
             int currentPlayerId = room.data.ParticipantOrder[room.data.CurrentPlayerIndex];
+            Participant participant = room.Participants.FirstOrDefault(p => p.id == currentPlayerId);
 
-            return room.Participants.First(p => p.id == currentPlayerId);
+            if (participant == null)
+                throw new InvalidOperationException($"Current player ID {currentPlayerId} is no longer in room participants.");
+
+            return participant;
         }
 
         private ClientInfo CurrentClient(RoomData room)
@@ -944,13 +1391,11 @@ namespace CreeperDice_Net_Proj.Model
 
             Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] [GAME:{roomName}] {message}");
         }
-
         private void LogGameError(string context, Exception ex)
         {
             Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] [GAME ERROR] {context}: {ex.Message}");
             Console.WriteLine(ex.StackTrace);
         }
-
         private string DiceTypeName(int diceType)
         {
             switch (diceType)

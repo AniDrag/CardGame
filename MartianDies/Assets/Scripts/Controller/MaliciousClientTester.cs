@@ -7,7 +7,28 @@ using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-
+/*
+ * MaliciousClientTester
+ * 
+ * Purpose:
+ * This script is a debug/testing tool for the networking system.
+ * It lets a developer manually send OSC messages to the server.
+ * 
+ * This is useful for testing:
+ * - normal client messages
+ * - wrong data types
+ * - missing data
+ * - invalid values
+ * - spam/burst messages
+ * - unknown OSC addresses
+ * 
+ * Important:
+ * This script is not normal gameplay code.
+ * It is made to test if the server is safe against bad or unexpected client input.
+ * 
+ * The server should never trust these messages.
+ * The server should validate every message before using it.
+ */
 public class MaliciousClientTester : MonoBehaviour
 {
     #region View References
@@ -24,6 +45,7 @@ public class MaliciousClientTester : MonoBehaviour
     [SerializeField] private Button connectButton;
     [SerializeField] private Button disconnectButton;
 
+
     [Header("Burst Settings")]
     [SerializeField] private TMP_InputField burstCountInput;
     [SerializeField] private TMP_InputField burstDelayInput;
@@ -31,9 +53,17 @@ public class MaliciousClientTester : MonoBehaviour
     #endregion
 
     #region State
-
     private readonly List<MessagePreset> presets = new();
     private Coroutine burstCoroutine;
+
+    /*
+     * queuedMessageAfterConnect:
+     * If the tester tries to send while disconnected, the message is stored here.
+     * After the client connects, this message is sent automatically.
+     * 
+     * waitingForAutoConnect:
+     * True when the tester is waiting for a connection before sending the queued message.
+     */
 
     private OSCMessageOut queuedMessageAfterConnect;
     private bool waitingForAutoConnect;
@@ -42,6 +72,16 @@ public class MaliciousClientTester : MonoBehaviour
 
     #region Unity Lifecycle
 
+    /*
+     * Start
+     * 
+     * What this does:
+     * Sets up the tester UI.
+     * Builds all test message presets.
+     * Registers UI button events.
+     * Registers Client connection events.
+     * Sets default values for IP, burst count, and burst delay.
+     */
     private void Start()
     {
         BuildPresets();
@@ -75,6 +115,51 @@ public class MaliciousClientTester : MonoBehaviour
 
     #region Setup
 
+    /*
+     * BuildPresets
+     * 
+     * What this does:
+     * Creates all predefined test messages.
+     * 
+     * Preset parameter format:
+     * type:value
+     * 
+     * Supported types:
+     * - int:123
+     * - float:1.5
+     * - bool:true
+     * - string:hello
+     * 
+     * Multiple parameters are separated with |
+     * Example:
+     * string:Test Room | int:25
+     * 
+     * Message examples:
+     * 
+     * Msg.C_REGISTER
+     * Payload sent:
+     * [0] string username
+     * 
+     * Msg.C_CREATE_ROOM
+     * Payload sent:
+     * [0] string roomName
+     * [1] int pointGoal
+     * 
+     * Msg.C_JOIN_ROOM
+     * Payload sent:
+     * [0] string roomName
+     * 
+     * Msg.C_SELECT_DICE
+     * Payload sent:
+     * [0] int diceType
+     * 
+     * Msg.C_STAKE_ANSWER
+     * Payload sent:
+     * [0] bool doReRoll
+     * 
+     * Some presets intentionally send wrong data.
+     * Those are used to check if the server rejects invalid messages safely.
+     */
     private void BuildPresets()
     {
         presets.Clear();
@@ -130,6 +215,7 @@ public class MaliciousClientTester : MonoBehaviour
         presets.Add(new MessagePreset("CUSTOM - first parameter is address", "", "/c_select_dice | int:999", "Custom mode. First token must be OSC address.", true));
     }
 
+  
     private void PopulateDropdown()
     {
         if (messageDropdown == null)
@@ -145,7 +231,6 @@ public class MaliciousClientTester : MonoBehaviour
     #endregion
 
     #region UI Registration
-
     private void RegisterUI()
     {
         if (messageDropdown != null)
@@ -192,6 +277,17 @@ public class MaliciousClientTester : MonoBehaviour
 
     #region Client Event Registration
 
+    /*
+     * RegisterClientEvents
+     * 
+     * What this does:
+     * Subscribes to the main Client connection events.
+     * 
+     * Used for:
+     * - sending a queued message after auto connect
+     * - clearing queued data if connection fails
+     * - clearing queued data if disconnected
+     */
     private void RegisterClientEvents()
     {
         if (Client.Instance == null)
@@ -201,7 +297,6 @@ public class MaliciousClientTester : MonoBehaviour
         Client.Instance.OnConnectionFailed += OnConnectionFailed;
         Client.Instance.OnDisconnected += OnClientDisconnected;
     }
-
     private void UnregisterClientEvents()
     {
         if (Client.Instance == null)
@@ -216,22 +311,49 @@ public class MaliciousClientTester : MonoBehaviour
 
     #region UI Events
 
+    /*
+     * OnDropdownChanged
+     * 
+     * What this receives:
+     * index = selected dropdown item index.
+     * 
+     * What this does:
+     * Applies the selected preset parameters to the input field.
+     * Updates the preview text.
+     */
     private void OnDropdownChanged(int index)
     {
         ApplySelectedPreset();
         UpdatePreview();
     }
 
+    /*
+     * OnParameterInputChanged
+     * 
+     * What this receives:
+     * value = the current parameter input field text.
+     * 
+     * What this does:
+     * Updates the preview text so the tester can see the final message.
+     */
     private void OnParameterInputChanged(string value)
     {
         UpdatePreview();
     }
-
     private void OnSendClicked()
     {
         SendSelectedMessage();
     }
 
+    /*
+     * OnBurstClicked
+     * 
+     * What this does:
+     * Starts or stops burst mode.
+     * 
+     * Burst mode sends the selected message many times.
+     * This is useful for testing spam, repeated actions, or server stability.
+     */
     private void OnBurstClicked()
     {
         if (burstCoroutine != null)
@@ -259,6 +381,7 @@ public class MaliciousClientTester : MonoBehaviour
         burstCoroutine = StartCoroutine(SendBurst());
     }
 
+    
     private void OnConnectClicked()
     {
         ConnectRawClient();
@@ -274,6 +397,15 @@ public class MaliciousClientTester : MonoBehaviour
 
     #region Client Events
 
+    /*
+     * OnClientConnected
+     * 
+     * What this does:
+     * Called when Client connects successfully.
+     * 
+     * If there is a queued message from QueueMessageAndConnect,
+     * this sends it now that the connection is ready.
+     */
     private void OnClientConnected()
     {
         Client.Log("MaliciousTester", "Raw TCP connection ready.");
@@ -289,6 +421,15 @@ public class MaliciousClientTester : MonoBehaviour
         Client.Log("MaliciousTester", "Sent after auto-connect: " + msg);
     }
 
+    /*
+     * OnConnectionFailed
+     * 
+     * What this receives:
+     * reason = why the Client failed to connect.
+     * 
+     * What this does:
+     * Clears the queued auto-connect message.
+     */
     private void OnConnectionFailed(string reason)
     {
         waitingForAutoConnect = false;
@@ -296,6 +437,15 @@ public class MaliciousClientTester : MonoBehaviour
         Client.Log("MaliciousTester", "Connection failed: " + reason);
     }
 
+    /*
+     * OnClientDisconnected
+     * 
+     * What this receives:
+     * reason = why the Client disconnected.
+     * 
+     * What this does:
+     * Clears the queued auto-connect message.
+     */
     private void OnClientDisconnected(string reason)
     {
         waitingForAutoConnect = false;
@@ -306,7 +456,6 @@ public class MaliciousClientTester : MonoBehaviour
     #endregion
 
     #region Preset Logic
-
     private MessagePreset SelectedPreset()
     {
         if (presets.Count == 0)
@@ -317,7 +466,6 @@ public class MaliciousClientTester : MonoBehaviour
 
         return presets[index];
     }
-
     private void ApplySelectedPreset()
     {
         MessagePreset preset = SelectedPreset();
@@ -332,6 +480,18 @@ public class MaliciousClientTester : MonoBehaviour
 
     #region Sending
 
+    /*
+     * SendSelectedMessage
+     * 
+     * What this does:
+     * Builds the selected OSC message and sends it.
+     * 
+     * Flow:
+     * 1. Check that Client.Instance exists.
+     * 2. Build an OSCMessageOut from the selected preset and parameter input.
+     * 3. If not connected, queue the message and connect first.
+     * 4. If connected, send immediately.
+     */
     private void SendSelectedMessage()
     {
         if (!HasClient())
@@ -355,6 +515,20 @@ public class MaliciousClientTester : MonoBehaviour
         Client.Log("MaliciousTester", "Sent: " + msg);
     }
 
+    /*
+     * SendBurst
+     * 
+     * What this does:
+     * Sends the selected message multiple times with a delay.
+     * 
+     * Data read from UI:
+     * burstCountInput = how many messages to send.
+     * burstDelayInput = delay between messages.
+     * 
+     * Limits:
+     * count is clamped between 1 and 250.
+     * delay is clamped between 0.01 and 2 seconds.
+     */
     private IEnumerator SendBurst()
     {
         int count = ReadIntInput(burstCountInput, 10);
@@ -389,6 +563,16 @@ public class MaliciousClientTester : MonoBehaviour
         Client.Log("MaliciousTester", "Burst finished.");
     }
 
+    /*
+     * CanSend
+     * 
+     * What this does:
+     * Checks if the Client exists and is connected.
+     * 
+     * Returns:
+     * true if a message can be sent right now.
+     * false if sending should stop.
+     */
     private bool CanSend()
     {
         if (!HasClient())
@@ -403,6 +587,16 @@ public class MaliciousClientTester : MonoBehaviour
         return true;
     }
 
+    /*
+     * HasClient
+     * 
+     * What this does:
+     * Checks if the main Client singleton exists.
+     * 
+     * Returns:
+     * true if Client.Instance exists.
+     * false if it is missing.
+     */
     private bool HasClient()
     {
         if (Client.Instance == null)
@@ -414,6 +608,15 @@ public class MaliciousClientTester : MonoBehaviour
         return true;
     }
 
+    /*
+     * QueueMessageAndConnect
+     * 
+     * What this does:
+     * Stores a message and connects to the server.
+     * 
+     * After connection succeeds:
+     * OnClientConnected sends the stored message.
+     */
     private void QueueMessageAndConnect(OSCMessageOut msg)
     {
         queuedMessageAfterConnect = msg;
@@ -423,6 +626,15 @@ public class MaliciousClientTester : MonoBehaviour
         ConnectRawClient();
     }
 
+    /*
+     * ConnectRawClient
+     * 
+     * What this does:
+     * Connects the main Client to the server IP from the tester input.
+     * 
+     * Port:
+     * Uses Msg.PORT.
+     */
     private void ConnectRawClient()
     {
         if (!HasClient())
@@ -439,6 +651,15 @@ public class MaliciousClientTester : MonoBehaviour
         Client.Instance.Connect(ip, Msg.PORT);
     }
 
+    /*
+     * ReadServerIp
+     * 
+     * What this does:
+     * Reads the server IP in this order:
+     * 1. serverIpInput text
+     * 2. Client.Instance.ServerIP
+     * 3. fallback 127.0.0.1
+     */
     private string ReadServerIp()
     {
         if (serverIpInput != null && !string.IsNullOrWhiteSpace(serverIpInput.text))
@@ -454,6 +675,20 @@ public class MaliciousClientTester : MonoBehaviour
 
     #region Message Building
 
+    /*
+     * TryBuildMessage
+     * 
+     * What this does:
+     * Converts the selected preset and parameter text into an OSCMessageOut.
+     * 
+     * Output:
+     * msg = the finished OSC message if successful.
+     * error = reason why it failed.
+     * 
+     * Returns:
+     * true if the message was built successfully.
+     * false if the message could not be built.
+     */
     private bool TryBuildMessage(out OSCMessageOut msg, out string error)
     {
         msg = null;
@@ -486,12 +721,26 @@ public class MaliciousClientTester : MonoBehaviour
         return true;
     }
 
-    private bool TryResolveAddressAndParams(
-        MessagePreset preset,
-        string rawParams,
-        out string address,
-        out string parameterText,
-        out string error)
+    /*
+     * TryResolveAddressAndParams
+     * 
+     * What this does:
+     * Decides which OSC address should be used.
+     * 
+     * Normal preset:
+     * Uses preset.Address.
+     * 
+     * Custom preset:
+     * The first token in the parameter input becomes the OSC address.
+     * 
+     * Custom example:
+     * /c_select_dice | int:999
+     * 
+     * Result:
+     * address = /c_select_dice
+     * parameterText = int:999
+     */
+    private bool TryResolveAddressAndParams(MessagePreset preset, string rawParams, out string address, out string parameterText, out string error)
     {
         address = preset.Address;
         parameterText = rawParams;
@@ -521,6 +770,19 @@ public class MaliciousClientTester : MonoBehaviour
         return true;
     }
 
+    /*
+     * TryAddParameters
+     * 
+     * What this does:
+     * Splits the parameter text into separate tokens and adds each one to the OSC message.
+     * 
+     * Example input:
+     * string:Test Room | int:25
+     * 
+     * Tokens:
+     * string:Test Room
+     * int:25
+     */
     private bool TryAddParameters(OSCMessageOut msg, string parameterText, out string error)
     {
         error = null;
@@ -541,6 +803,23 @@ public class MaliciousClientTester : MonoBehaviour
         return true;
     }
 
+    /*
+     * TryAddParameter
+     * 
+     * What this does:
+     * Adds one parameter to the OSCMessageOut.
+     * 
+     * Expected format:
+     * type:value
+     * 
+     * Supported types:
+     * int
+     * float
+     * bool
+     * string
+     * 
+     * If no type is written, it tries auto typing in TryAddAutoTypedParameter.
+     */
     private bool TryAddParameter(OSCMessageOut msg, string token, out string error)
     {
         error = null;
@@ -597,6 +876,24 @@ public class MaliciousClientTester : MonoBehaviour
         }
     }
 
+    /*
+     * TryAddAutoTypedParameter
+     * 
+     * What this does:
+     * Adds a parameter when the tester did not write type:value.
+     * 
+     * Auto type order:
+     * 1. Try int
+     * 2. Try float
+     * 3. Try bool
+     * 4. If none match, use string
+     * 
+     * Example:
+     * 123 becomes int.
+     * 1.5 becomes float.
+     * true becomes bool.
+     * hello becomes string.
+     */
     private bool TryAddAutoTypedParameter(OSCMessageOut msg, string token, out string error)
     {
         error = null;
@@ -623,6 +920,19 @@ public class MaliciousClientTester : MonoBehaviour
         return true;
     }
 
+    /*
+     * SplitParameterTokens
+     * 
+     * What this does:
+     * Splits parameter text by the | character.
+     * Removes empty tokens.
+     * Trims spaces around each token.
+     * 
+     * Example:
+     * "string:Room | int:25"
+     * becomes:
+     * ["string:Room", "int:25"]
+     */
     private string[] SplitParameterTokens(string text)
     {
         if (string.IsNullOrWhiteSpace(text))
@@ -639,6 +949,18 @@ public class MaliciousClientTester : MonoBehaviour
 
     #region Preview
 
+    /*
+     * UpdatePreview
+     * 
+     * What this does:
+     * Updates the preview UI text so the tester can see:
+     * - selected preset
+     * - final OSC address
+     * - parameters
+     * - purpose of the preset
+     * 
+     * If an error exists, it shows the error instead.
+     */
     private void UpdatePreview(string error = null)
     {
         if (previewText == null)
@@ -689,6 +1011,18 @@ public class MaliciousClientTester : MonoBehaviour
         return int.TryParse(input.text, out int value) ? value : fallback;
     }
 
+    /*
+     * ReadFloatInput
+     * 
+     * What this does:
+     * Reads a float from a TMP input field.
+     * 
+     * Uses CultureInfo.InvariantCulture so decimal points work consistently.
+     * 
+     * Returns:
+     * parsed value if valid.
+     * fallback value if input is missing or invalid.
+     */
     private float ReadFloatInput(TMP_InputField input, float fallback)
     {
         if (input == null)
@@ -703,6 +1037,28 @@ public class MaliciousClientTester : MonoBehaviour
 
     #region Helper Types
 
+    /*
+     * MessagePreset
+     * 
+     * Purpose:
+     * Stores one test message option for the dropdown.
+     * 
+     * DisplayName:
+     * Text shown in the dropdown.
+     * 
+     * Address:
+     * OSC address that will be sent.
+     * Example: Msg.C_REGISTER or "/c_select_dice"
+     * 
+     * ExampleParameters:
+     * Default text placed in the parameter input field.
+     * 
+     * Description:
+     * Explains what this test message is for.
+     * 
+     * IsCustom:
+     * If true, the first token in the parameter input is used as the OSC address.
+     */
     private class MessagePreset
     {
         public string DisplayName;

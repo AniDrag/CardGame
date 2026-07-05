@@ -96,7 +96,7 @@ public class GameView : MonoBehaviour
         userViews.Clear();
     }
 
-    public void UpdateOrAddUser(string username, int points)
+    public void UpdateOrAddUser(string username, int points, int pointGoal)
     {
         if (userViews.TryGetValue(username, out UserView existingView))
         {
@@ -120,7 +120,7 @@ public class GameView : MonoBehaviour
             return;
         }
 
-        userView.Initialize(username, 25, points);
+        userView.Initialize(name, pointGoal, points);
 
         userViews[username] = userView;
     }
